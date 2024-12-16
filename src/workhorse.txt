@@ -1,0 +1,68 @@
+const q = workhorse.createQueue("stuff");
+
+q.push({identity: '123', data: ''});
+
+const entry = q.peek();
+
+let bool success = false;
+let err = undefined;
+try {
+    const result = await sendToSomeServer(entry);
+    if(....) {
+        sucess = true;
+    }
+} catch(err) {
+} finally{
+    if (success) {
+        q.success(entry);
+    } else {
+        q.failure(enty);
+    }
+}
+
+interface Queue {
+    push(e: Entry);
+    peek() : Entry | undefined;
+    //async poll(timeout); 
+    update(e: Entry);
+};
+
+interface Task { // eller bara Task?
+    async execute();
+}
+
+createHttpTask(url, payload, method=POST, id=DEFAULT) : TaskEntry
+
+interface TaskQueue {
+    pushTask(t: Task);
+    peekTask(): Task | undefined;
+    pollTask(timeout) : Task | undefined;
+    updateTask(e: Task, success: bool);
+    taskSuccessful(e: Task);
+    taskFailed(e: Task);
+}
+
+interface TaskExecutor {
+    start();
+    stop(); // behövs den verkligen?
+    getStatus() : TaskExecutorStatus;
+}
+
+interface TaskExecutorStatus {
+    done(): number;
+    remaining(): number;
+    failures(): number;
+    percentageDone(): number;
+}
+
+const q = workhorse.createTaskQueue("messages");
+const executor = workhorse.createExecutor({ exponentialBackoff=true, initialBackoff=seconds(5), maxRetries=20, maxRetryTime=days(1)})
+executor.start();
+
+q.pushTask(createHttpTask("https://example.com", {title: "Dude"})));
+q.pushTask(createHttpTask("https://example.com", {title: "Where"}));
+q.pushTask(createHttpTask("https://example.com", {title: "Is"}));
+q.pushTask(createHttpTask("https://example.com", {title: "My"}));
+q.pushTask(createHttpTask("https://example.com", {title: "Car"}));
+
+executor.getStatus().percentageDone

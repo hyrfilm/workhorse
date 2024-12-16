@@ -1,24 +1,23 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+import { SQLocal } from 'sqlocal';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+// Create a client with a name for the SQLite file to save in
+// the origin private file system
+const { sql } = new SQLocal('database.sqlite3');
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+// Use the "sql" tagged template to execute a SQL statement
+// against the SQLite database
+await sql`CREATE TABLE groceries (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)`;
+
+await sql`CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, identity TEXT, state INTEGER, retries INTEGER)`;
+
+// Execute a parameterized statement just by inserting 
+// parameters in the SQL string
+const items = ['bread', 'milk', 'rice'];
+for (let item of items) {
+  await sql`INSERT INTO groceries (name) VALUES (${item})`;
+}
+
+// SELECT queries and queries with the RETURNING clause will
+// return the matched records as an array of objects
+const data = await sql`SELECT * FROM groceries`;
+console.log(data);
