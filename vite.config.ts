@@ -1,19 +1,23 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from "vite";
+
+function crossOriginIsolationMiddleware(_, response, next) {
+  response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  next();
+}
 
 export default defineConfig({
-    plugins: [
-        {
-          name: 'configure-response-headers',
-          configureServer: (server) => {
-            server.middlewares.use((_req, res, next) => {
-              res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-              res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-              next();
-            });
-          },
-        },
-      ],
-    optimizeDeps: {
-        exclude: ['sqlocal'],
-      },
-  });
+  build: {
+    target: "es2022",
+  },
+  plugins: [
+    {
+        name: 'cross-origin-isolation',
+        configureServer: server => { server.middlewares.use(crossOriginIsolationMiddleware); },
+        configurePreviewServer: server => { server.middlewares.use(crossOriginIsolationMiddleware); },
+    },
+  ],
+  optimizeDeps: {
+    exclude: ["sqlocal"],
+  },
+});

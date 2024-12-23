@@ -1,23 +1,23 @@
-import { SQLocal } from 'sqlocal';
+import { createWorkhorse } from './workhorse';
 
-// Create a client with a name for the SQLite file to save in
-// the origin private file system
-const { sql } = new SQLocal('database.sqlite3');
+console.log("Creating workhorse instance...")
 
-// Use the "sql" tagged template to execute a SQL statement
-// against the SQLite database
-await sql`CREATE TABLE groceries (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)`;
+const workhorse = await createWorkhorse();
 
-await sql`CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, identity TEXT, state INTEGER, retries INTEGER)`;
+console.log("Adding some tasks...");
 
-// Execute a parameterized statement just by inserting 
-// parameters in the SQL string
-const items = ['bread', 'milk', 'rice'];
-for (let item of items) {
-  await sql`INSERT INTO groceries (name) VALUES (${item})`;
-}
+await workhorse.addTask('task1', 'dude');
+await workhorse.addTask('task2', 'where');
+await workhorse.addTask('task3', 'is');
+await workhorse.addTask('task4', 'my');
+await workhorse.addTask('task5', 'car');
 
-// SELECT queries and queries with the RETURNING clause will
-// return the matched records as an array of objects
-const data = await sql`SELECT * FROM groceries`;
-console.log(data);
+console.log('Done');
+
+const numQueued = await workhorse.numTasksQueued();
+const numSuccessful = await workhorse.numTasksSuccessful();
+const numFailed = await workhorse.numTasksFailed();
+
+console.log(`queued: ${numQueued}`);
+console.log(`successful: ${numSuccessful}`);
+console.log(`failed: ${numFailed}`);

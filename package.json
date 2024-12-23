@@ -13,6 +13,8 @@
     "vite": "^6.0.1"
   },
   "dependencies": {
-    "sqlocal": "^0.13.0"
+    "sqlocal": "^0.13.0",
+    "uuid": "^11.0.3",
+    "xstate": "^5.19.0"
   }
 }
