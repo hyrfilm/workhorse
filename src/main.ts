@@ -14,10 +14,25 @@ await workhorse.addTask('task5', 'car');
 
 console.log('Done');
 
-const numQueued = await workhorse.numTasksQueued();
-const numSuccessful = await workhorse.numTasksSuccessful();
-const numFailed = await workhorse.numTasksFailed();
+console.log(await workhorse.getStatus());
 
-console.log(`queued: ${numQueued}`);
-console.log(`successful: ${numSuccessful}`);
-console.log(`failed: ${numFailed}`);
+await workhorse.poll();
+
+console.log(await workhorse.getStatus());
+
+await workhorse.poll();
+
+console.log(await workhorse.getStatus());
+
+await workhorse.poll();
+
+console.log(await workhorse.getStatus());
+
+await workhorse.poll();
+
+console.log(await workhorse.getStatus());
+
+await workhorse.poll();
+
+console.log(await workhorse.getStatus());
+

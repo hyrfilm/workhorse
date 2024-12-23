@@ -29,7 +29,7 @@ interface TaskQueue extends TaskProducer, TaskConsumer {
 
 interface TaskRow {
     taskId: TaskId;
-    rowData: Record<string, unknown>;
+    taskRow: Record<string, unknown>;
 }
 
 export type { SqlExecutor, TaskId, TaskRow, TaskConsumer, TaskProducer, TaskQueue };

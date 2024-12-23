@@ -37,6 +37,7 @@ function createTaskQueue(sqlExecutor: SqlExecutor): TaskQueue {
             WHERE id = ${taskRow.id};
             `
             ;
+            return { taskId: taskRow.id, taskRow: taskRow[0] };
         },
         taskSuccessful: async (taskId: TaskId) => {
             await sql
