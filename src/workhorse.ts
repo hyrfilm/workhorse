@@ -47,6 +47,7 @@ const createTaskRunner = (queue: TaskConsumer, run: RunTask) => {
             let payloadMaybe = undefined;
             //TODO: Refactor this mess
 
+            //TODO: All of this can be checked at THE TIME OF RESERVATION
             if (!task) {
                 throw new Error(`Missing task`);
             }

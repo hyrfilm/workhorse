@@ -18,8 +18,8 @@ function createTaskQueue(sqlExecutor: SqlExecutor): TaskQueue {
             -- fetch the next task
             SELECT * FROM task_queue
             WHERE status_id = 1 -- 'queued'
-            ORDER BY created_at ASC
-            LIMIT 1;            
+            ORDER BY id ASC
+            LIMIT 1;
             `
             ;
             if (!maybeTaskRow) {

@@ -32,7 +32,11 @@ interface TaskRow {
     taskRow: Record<string, unknown>;
 }
 
-type Payload = object;
+type JSONValue = string | number | boolean | null | JSONObject | JSONValue[];
+interface JSONObject {
+  [key: string]: JSONValue; // Maps keys to JSON values
+}
+type Payload = JSONObject; // Based on your requirements
 
 export type { SqlExecutor, RowId, TaskRow, TaskConsumer, TaskProducer, TaskQueue, Payload };
 export { TaskState };
