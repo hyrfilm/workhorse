@@ -41,11 +41,13 @@ export const taskExecutorMachine = machineSetup.createMachine({
   states: {
     idle: { always: {target: 'ready'}},
     ready: {
+      tags: ['ready'],
       on: {
         poll: { target: "reservingTask" },
       },
     },
     reservingTask: {
+      tags: ['busy'],
       invoke: {
         src: "reserveHook",
         onDone: { target: "taskExecuting" },

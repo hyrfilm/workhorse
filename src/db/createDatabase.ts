@@ -35,7 +35,7 @@ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 -- Completion timestamp (NULL if not completed)  
 completed_at TIMESTAMP);
 
-PRAGMA journal_mode=WAL;
+--PRAGMA journal_mode=WAL;
 
 `};
 
