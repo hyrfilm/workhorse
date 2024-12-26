@@ -48,6 +48,7 @@ const appendHTMLTask = async (taskId: string, payload: Payload): Promise<void> =
     if (typeof parentId==="string" && typeof tag==="string" && typeof text==="string") {
         const parent = document.getElementById(parentId) as Element;
         const el = document.createElement(tag);
+        el.id = taskId;
         el.textContent = text;
         parent.appendChild(el);
     }
