@@ -1,14 +1,14 @@
-import { SqlExecutor, TaskQueue, TaskId, TaskState } from './types';
+import { SqlExecutor, TaskQueue, RowId, TaskState } from '@/types';
 
 function createTaskQueue(sqlExecutor: SqlExecutor): TaskQueue {
     const sql = sqlExecutor;
 
     return {
-        addTask: async(identity, payload) => {
+        addTask: async(taskId, payload) => {
             await sql
             `
-            INSERT INTO task_queue (identity, payload, status_id)
-            VALUES (${identity}, ${payload}, ${TaskState.queued});
+            INSERT INTO task_queue (task_id, task_payload, status_id)
+            VALUES (${taskId}, ${payload}, ${TaskState.queued});
             `
             ;
         },
@@ -37,9 +37,9 @@ function createTaskQueue(sqlExecutor: SqlExecutor): TaskQueue {
             WHERE id = ${taskRow.id};
             `
             ;
-            return { taskId: taskRow.id, taskRow: taskRow[0] };
+            return { rowId: taskRow.id, taskRow: taskRow };
         },
-        taskSuccessful: async (taskId: TaskId) => {
+        taskSuccessful: async (taskId: RowId) => {
             await sql
             `
             -- mark as successful

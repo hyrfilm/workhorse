@@ -1,38 +1,56 @@
 import { createWorkhorse } from './workhorse';
+import { printTask } from './tasks/printTask';
+import log from "loglevel"
+import { seconds } from './util/time';
 
-console.log("Creating workhorse instance...")
+log.setDefaultLevel(log.levels.INFO);
+/*
+interface Task {
+    run: (payload: string) => 
+}
 
-const workhorse = await createWorkhorse();
+interface TaskRunner<T> {
+    run(taskId: string, payload: T)
+}
 
-console.log("Adding some tasks...");
+const httpTask = (taskId, payload) => {
+    fetch(url)
+}
+*/
 
-await workhorse.addTask('task1', 'dude');
-await workhorse.addTask('task2', 'where');
-await workhorse.addTask('task3', 'is');
-await workhorse.addTask('task4', 'my');
-await workhorse.addTask('task5', 'car');
+log.info("Creating workhorse instance...");
 
-console.log('Done');
+const workhorse = await createWorkhorse(printTask);
 
-console.log(await workhorse.getStatus());
+log.info("Adding some tasks...");
+
+await workhorse.addTask('task1', { msg: 'dude' });
+await workhorse.addTask('task2', { msg: 'where', delay: seconds(4) });
+await workhorse.addTask('task3', { msg: 'is', delay: seconds(3) });
+await workhorse.addTask('task4', { msg: 'my', delay: seconds(2) });
+await workhorse.addTask('task5', { msg: 'car', delay: seconds(1) });
+
+log.info('Done');
+
+log.info(await workhorse.getStatus());
 
 await workhorse.poll();
 
-console.log(await workhorse.getStatus());
+log.info(await workhorse.getStatus());
 
 await workhorse.poll();
 
-console.log(await workhorse.getStatus());
+log.info(await workhorse.getStatus());
 
 await workhorse.poll();
 
-console.log(await workhorse.getStatus());
+log.info(await workhorse.getStatus());
 
 await workhorse.poll();
 
-console.log(await workhorse.getStatus());
+log.info(await workhorse.getStatus());
 
 await workhorse.poll();
 
-console.log(await workhorse.getStatus());
+log.info(await workhorse.getStatus());
 

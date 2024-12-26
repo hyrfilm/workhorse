@@ -1,5 +1,5 @@
 import { SQLocal } from 'sqlocal';
-import { SqlExecutor, TaskState } from './types';
+import { SqlExecutor, TaskState } from '@/types';
 
 async function createSchema(sql: SqlExecutor): Promise<void> {
     await sql`
@@ -21,9 +21,9 @@ CREATE TABLE task_queue (
 -- Unique identifier for each task
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 -- UUID for the task (ensures uniqueness)                     
-identity VARCHAR(36) UNIQUE NOT NULL,
+task_id VARCHAR(36) UNIQUE NOT NULL,
 -- The JSON payload of the task                     
-payload TEXT NOT NULL,
+task_payload TEXT NOT NULL,
 -- Foreign key to task_status                                    
 status_id INTEGER NOT NULL REFERENCES task_status(id),
 -- Retry counter, must be non-negative    

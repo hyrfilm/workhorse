@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@statelyai/inspect": "^0.4.0",
+    "loglevel": "^1.9.2",
     "sqlocal": "^0.13.0",
     "xstate": "^5.19.0"
   }

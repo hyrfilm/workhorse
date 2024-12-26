@@ -10,16 +10,16 @@ enum TaskState {
     failed      = 4,
 }
 
-type TaskId = number;
+type RowId = number;
 
 interface TaskProducer {
-    addTask(identity: string, payload: string) : Promise<void>;
+    addTask(taskId: string, payload: string) : Promise<void>;
 }
 
 interface TaskConsumer {
     reserveTask() : Promise<TaskRow | undefined>;
-    taskSuccessful(id: TaskId) : Promise<void>;
-    taskFailed(id: TaskId): Promise<void>;
+    taskSuccessful(id: RowId) : Promise<void>;
+    taskFailed(id: RowId): Promise<void>;
 }
 
 
@@ -28,9 +28,11 @@ interface TaskQueue extends TaskProducer, TaskConsumer {
 }
 
 interface TaskRow {
-    taskId: TaskId;
+    rowId: RowId;
     taskRow: Record<string, unknown>;
 }
 
-export type { SqlExecutor, TaskId, TaskRow, TaskConsumer, TaskProducer, TaskQueue };
+type Payload = object;
+
+export type { SqlExecutor, RowId, TaskRow, TaskConsumer, TaskProducer, TaskQueue, Payload };
 export { TaskState };
