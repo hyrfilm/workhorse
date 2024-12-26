@@ -18,7 +18,16 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+
+      "@/db": ["src/db"],
+      "@/machines": ["src/machines"],
+      "@/util": ["src/util"],
+    }
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }

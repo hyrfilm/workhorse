@@ -1,6 +1,6 @@
-import { setup, fromPromise, assign } from "xstate";
+import { createBackoff } from "@/util/backoff";
+import { setup, fromPromise } from "xstate";
 
-// Define asynchronous functions
 const reserveTask = async (): Promise<void> => {
 };
 
@@ -13,19 +13,14 @@ const handleFailure = async (): Promise<void> => {
 const handleSuccess = async (): Promise<void> => {
 };
 
+//TODO: Should be passed in to make more configurable
+const backoff = createBackoff({initial: 500, multiplier: 2.5, maxTime: 16000});
+
 // Create the state machine setup
 const machineSetup = setup({
   types: {
-    context: { backoff: 500 } as { backoff: number },
+    context: {},
     events: {} as { type: "poll" },
-  },
-  actions: {
-    resetBackoffAction: assign({
-      backoff: () => 500, // Resetting the backoff duration to 500ms
-    }),
-    increaseBackoffAction: assign({
-      backoff: ({context}) => Math.min(context.backoff * 2, 16000), // Double the backoff duration with a cap at 16 seconds
-    }),
   },
   actors: {
     reserveHook: fromPromise(reserveTask),
@@ -33,14 +28,18 @@ const machineSetup = setup({
     failureHook: fromPromise(handleFailure),
     successHook: fromPromise(handleSuccess),
   },
+  delays: {
+    DELAY: () => backoff.getBackoff(),
+  }
 });
 
 // Configure the machine with states and transitions
 export const taskExecutorMachine = machineSetup.createMachine({
-  context: { backoff: 500 },
+  context: {},
   id: "TaskExecutor",
-  initial: "ready",
+  initial: "idle",
   states: {
+    idle: { always: {target: 'ready'}},
     ready: {
       on: {
         poll: { target: "reservingTask" },
@@ -48,15 +47,13 @@ export const taskExecutorMachine = machineSetup.createMachine({
     },
     reservingTask: {
       invoke: {
-        input: {},
         src: "reserveHook",
-        onDone: { target: "executingTask" },
+        onDone: { target: "taskExecuting" },
         onError: { target: "noReservation" },
       },
     },
-    executingTask: {
+    taskExecuting: {
       invoke: {
-        input: {},
         src: "executeHook",
         onDone: { target: "taskSuccessful" },
         onError: { target: "taskFailed" },
@@ -67,16 +64,14 @@ export const taskExecutorMachine = machineSetup.createMachine({
     },
     taskFailed: {
       invoke: {
-        input: {},
         src: "failureHook",
         onDone: { target: "backingOff" },
         onError: { target: "halted" },
       },
     },
     taskSuccessful: {
-      entry: { type: "resetBackoffAction" },
+      entry: () => {backoff.resetBackoff()},
       invoke: {
-        input: {},
         src: "successHook",
         onDone: { target: "continue" },
         onError: { target: "halted" },
@@ -87,13 +82,12 @@ export const taskExecutorMachine = machineSetup.createMachine({
     },
     backingOff: {
       after: {
-        "500": { target: "continue" },
+        DELAY: { target: "continue" },
       },
-      exit: { type: "increaseBackoffAction" },
+      exit: () => { backoff.increaseBackoff()}, // Increase backoff on exit
     },
     halted: {
       type: "final",
     },
   },
 });
-

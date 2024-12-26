@@ -1,14 +1,25 @@
-import { createDatabase } from "./db/createDatabase";
-import { createTaskQueue } from "./db/createTaskQueue";
-import { TaskConsumer, TaskProducer, TaskRow, TaskState } from "./db/types";
-import { taskExecutorMachine } from "./machines/TaskExecutorMachine";
+import { createDatabase } from "@/db/createDatabase";
+import { createTaskQueue } from "@/db/createTaskQueue";
+import { TaskConsumer, TaskProducer, TaskRow, TaskState } from "@/db/types";
+import { taskExecutorMachine } from "@/machines/TaskExecutorMachine";
 import { createActor, fromPromise, waitFor } from "xstate";
 
+//TODO: Should be used for all kinds of configurations / overrides
+/*
+const settings = {
+    backoff: {
+        initial: seconds(0.5),
+        multiplier: 2.5,
+        maxTime: minutes(15),
+    }
+};
+*/
 interface WorkhorseStatus {
     queued: number,
     successful: number,
     failed: number,
 }
+
 interface Workhorse extends TaskProducer {
     getStatus: () => Promise<WorkhorseStatus>;
     poll: () => Promise<void>;
@@ -27,7 +38,9 @@ const createTaskRunner = (queue: TaskConsumer) => {
                 console.log(`Reserved task: ${JSON.stringify(task)}`);
             }
         },
-        exeuteHook: async (): Promise<void> => {
+        // eslint-disable-next-line @typescript-eslint/require-await
+        executeHook: async (): Promise<void> => {
+            throw new Error('Oups');
             console.log(`Executing ${JSON.stringify(task)}`);
         },
         sucessHook: async (): Promise<void> => {
@@ -51,18 +64,20 @@ const createTaskRunner = (queue: TaskConsumer) => {
 
 const createWorkhorse = async () : Promise<Workhorse> => {
     const sqlExecutor = await createDatabase();
-    const taskQueue = await createTaskQueue(sqlExecutor);
+    const taskQueue =  createTaskQueue(sqlExecutor);
     const taskRunner = createTaskRunner(taskQueue);
-    const taskExecutor = createActor(taskExecutorMachine.provide({
+    const machine = taskExecutorMachine.provide({
         actors: { 
             reserveHook: fromPromise(taskRunner.reserveHook),
-            executeHook: fromPromise(taskRunner.exeuteHook),
+            executeHook: fromPromise(taskRunner.executeHook),
             successHook: fromPromise(taskRunner.sucessHook),
             failureHook: fromPromise(taskRunner.failureHook),
-         }
-    }));
+         },
+    })
+    const taskExecutor = createActor(machine);
 
-    taskExecutor.subscribe((snapshot) => console.log(snapshot.value));
+    //TODO: Add some good way to inspect / diagnose stuff
+    //taskExecutor.subscribe((snapshot) => console.log(snapshot.value));
     taskExecutor.start();
 
     const workhorse = {
