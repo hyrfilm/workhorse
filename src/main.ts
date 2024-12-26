@@ -1,23 +1,36 @@
 import { createWorkhorse } from './workhorse';
-import * as tasks from './tasks';
 import log from "loglevel"
+import {appendHTMLTask} from "./tasks";
+import {seconds} from "@/util/time.ts";
 
 log.setDefaultLevel(log.levels.INFO);
 
-log.info("Creating workhorse instance...");
+const numTasks = 10000;
 
-const workhorse = await createWorkhorse(tasks.jsonRequestTask);
+const workhorse = await createWorkhorse(appendHTMLTask);
 
-log.info("Creating tasks...");
+log.info("Adding tasks...");
 
+for(let i=1;i<=numTasks;i++) {
+    const status = await workhorse.getStatus();
+    const el = document.getElementById("status") as Element;
+    el.innerHTML = JSON.stringify(status);
 
-for (let i=0;i<1000;i++) {
-    const url = `https://jsonplaceholder.typicode.com/posts`;
-    const body = { title: `title ${i}`, body: `body ${i}`, userId: i};
-    const method = 'POST';
-
-    await workhorse.addTask(`task-${i}`, { url, method, body });
+    workhorse.addTask(`task-1-${i}`, { parentId: 'tasks', tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
+    if (numTasks>100) {
+        workhorse.poll();
+    }
 }
 
-log.info("Processing tasks...");
+let done = false;
 
+while(!done) {
+    await workhorse.poll();
+    const status = await workhorse.getStatus();
+    const el = document.getElementById("status") as Element;
+    el.innerHTML = JSON.stringify(status);
+    log.info(status);
+    if (!status.queued) {
+        done = true;
+    }
+}

@@ -33,8 +33,24 @@ const jsonRequestTask = async (taskId: string, payload: Payload): Promise<void> 
     if (!response.ok) {
         throw new Error(`[${taskId}]: response status: ${statusCode}`); 
     }
-    const jsonResponse = await response.json();
+    const jsonResponse = await response.json() as object;
     console.info(`[${taskId}]: ${statusCode} ${JSON.stringify(jsonResponse)}`);
-} 
+}
 
-export { printTask, jsonRequestTask };
+const appendHTMLTask = async (taskId: string, payload: Payload): Promise<void> => {
+    const { parentId, tag, text } = payload;
+    let { delay } = payload;
+    if (typeof delay!=="number") {
+        delay = 0;
+    }
+    await new Promise((resolve) => setTimeout(resolve, delay));
+
+    if (typeof parentId==="string" && typeof tag==="string" && typeof text==="string") {
+        const parent = document.getElementById(parentId) as Element;
+        const el = document.createElement(tag);
+        el.textContent = text;
+        parent.appendChild(el);
+    }
+}
+
+export { printTask, appendHTMLTask, jsonRequestTask };

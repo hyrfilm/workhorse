@@ -1,9 +1,4 @@
-//TODO: Maybe remove this and just pass the parameters as normal args
-interface BackoffConfig {
-    initial: number;
-    multiplier: number;
-    maxTime: number;
-  };
+import {BackoffSettings} from "@/types.ts";
 
   interface Backoff {
     getBackoff() : number
@@ -11,7 +6,7 @@ interface BackoffConfig {
     resetBackoff() : void
   }
   
-  const createBackoff = (config: BackoffConfig) : Backoff => {
+  const createBackoff = (config: BackoffSettings) : Backoff => {
     let currentBackoff = config.initial;
   
     return {

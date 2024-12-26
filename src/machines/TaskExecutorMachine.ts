@@ -1,26 +1,21 @@
-import { createBackoff } from "@/util/backoff";
-import { setup, fromPromise } from "xstate";
+import {createBackoff} from "@/util/backoff";
+import {createActor, fromPromise, setup} from "xstate";
+import {WorkhorseConfig, TaskRunner} from "@/types.ts";
 
-const reserveTask = async (): Promise<void> => {
-};
-
-const executeTask = async (): Promise<void> => {
-};
-
-const handleFailure = async (): Promise<void> => {
-};
-
-const handleSuccess = async (): Promise<void> => {
-};
+const reserveTask = async (): Promise<void> => {};
+const executeTask = async (): Promise<void> => {};
+const handleFailure = async (): Promise<void> => {};
+const handleSuccess = async (): Promise<void> => {};
 
 //TODO: Should be passed in to make more configurable
-const backoff = createBackoff({initial: 500, multiplier: 2.5, maxTime: 16000});
+let backoff = createBackoff({initial: 500, multiplier: 2.5, maxTime: 16000});
 
 // Create the state machine setup
 const machineSetup = setup({
   types: {
     context: {},
-    events: {} as { type: "poll" },
+    events: {} as { type: "start" } | { type: "stop" } | { type: "poll" },
+    tags: {} as 'ready' | 'stopped' | 'canStop' | 'busy' | 'executing' | 'executed' | 'failure' | 'success' | 'critical'
   },
   actors: {
     reserveHook: fromPromise(reserveTask),
@@ -33,17 +28,19 @@ const machineSetup = setup({
   }
 });
 
-// Configure the machine with states and transitions
 export const taskExecutorMachine = machineSetup.createMachine({
   context: {},
   id: "TaskExecutor",
   initial: "idle",
   states: {
-    idle: { always: {target: 'ready'}},
+    idle: {
+      tags: ['stopped', 'canStop'],
+      on: { start: { target: "ready"} } },
     ready: {
-      tags: ['ready'],
+      tags: ['ready', 'canStop'],
       on: {
         poll: { target: "reservingTask" },
+        stop: { target: "idle" },
       },
     },
     reservingTask: {
@@ -55,6 +52,7 @@ export const taskExecutorMachine = machineSetup.createMachine({
       },
     },
     taskExecuting: {
+      tags: ['executing'],
       invoke: {
         src: "executeHook",
         onDone: { target: "taskSuccessful" },
@@ -65,6 +63,7 @@ export const taskExecutorMachine = machineSetup.createMachine({
       always: { target: "continue" },
     },
     taskFailed: {
+      tags: ['failure', 'executed'],
       invoke: {
         src: "failureHook",
         onDone: { target: "backingOff" },
@@ -72,6 +71,7 @@ export const taskExecutorMachine = machineSetup.createMachine({
       },
     },
     taskSuccessful: {
+      tags: ['success', 'executed'],
       entry: () => {backoff.resetBackoff()},
       invoke: {
         src: "successHook",
@@ -83,13 +83,33 @@ export const taskExecutorMachine = machineSetup.createMachine({
       always: { target: "ready" },
     },
     backingOff: {
+      tags: ['canStop'],
+      on: { stop: 'idle'},
       after: {
         DELAY: { target: "continue" },
       },
       exit: () => { backoff.increaseBackoff()}, // Increase backoff on exit
     },
     halted: {
+      tags: ['critical', 'stopped', 'canStop'],
       type: "final",
     },
   },
 });
+
+export function createTaskExecutor(taskRunner: TaskRunner, settings: WorkhorseConfig) {
+  backoff = createBackoff(settings.backoff);
+    const machine = taskExecutorMachine.provide({
+        actors: {
+            reserveHook: fromPromise(taskRunner.reserveHook),
+            executeHook: fromPromise(taskRunner.executeHook),
+            successHook: fromPromise(taskRunner.sucessHook),
+            failureHook: fromPromise(taskRunner.failureHook),
+        },
+    })
+    const taskExecutor = createActor(machine);
+    taskExecutor.start();
+    taskExecutor.send({ type: 'start' });
+
+    return taskExecutor;
+}
