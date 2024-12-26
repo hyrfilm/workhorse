@@ -1,56 +1,35 @@
 import { createWorkhorse } from './workhorse';
-import { printTask } from './tasks/printTask';
+import * as tasks from './tasks';
 import log from "loglevel"
 import { seconds } from './util/time';
 
 log.setDefaultLevel(log.levels.INFO);
-/*
-interface Task {
-    run: (payload: string) => 
-}
-
-interface TaskRunner<T> {
-    run(taskId: string, payload: T)
-}
-
-const httpTask = (taskId, payload) => {
-    fetch(url)
-}
-*/
 
 log.info("Creating workhorse instance...");
 
-const workhorse = await createWorkhorse(printTask);
+const workhorse = await createWorkhorse(tasks.jsonRequestTask);
 
-log.info("Adding some tasks...");
+log.info("Creating tasks...");
 
-await workhorse.addTask('task1', { msg: 'dude' });
-await workhorse.addTask('task2', { msg: 'where', delay: seconds(4) });
-await workhorse.addTask('task3', { msg: 'is', delay: seconds(3) });
-await workhorse.addTask('task4', { msg: 'my', delay: seconds(2) });
-await workhorse.addTask('task5', { msg: 'car', delay: seconds(1) });
+for (let i=0;i<1000;i++) {
+    const url = `https://jsonplaceholder.typicode.com/posts`;
+    const body = { title: `title ${i}`, body: `body ${i}`, userId: i};
+    const method = 'POST';
 
-log.info('Done');
+    await workhorse.addTask(`task-${i}`, { url, method, body });
+}
 
-log.info(await workhorse.getStatus());
+log.info("Processing tasks...");
 
-await workhorse.poll();
+const concurrency = 50;
+const pollers = [];
 
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
+let done = false;
+while(!done) {
+    for(let i=0;i<concurrency;i++) {
+        pollers.push(workhorse.poll());
+    }    
+    await Promise.race(pollers);
+    const { queued } = await workhorse.getStatus();
+    done = !queued;
+}
