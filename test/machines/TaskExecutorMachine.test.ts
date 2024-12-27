@@ -24,15 +24,16 @@ function assertEdgeMaches(node: DirectedGraphNode, childIndex: number, names: st
 describe('TaskExecutorMachine Graph Tests', () => {
   test('shortestPaths', () => {
     const paths = getShortestPaths(taskExecutorMachine);
-    expect(paths.length).toBe(7);
+    expect(paths.length).toBe(8);
 
-    assertPathMatches(paths[0], 'ready');
-    assertPathMatches(paths[1], 'reserving');
-    assertPathMatches(paths[2], 'executing');
-    assertPathMatches(paths[3], 'successful');
-    assertPathMatches(paths[4], 'failed');
-    assertPathMatches(paths[5], 'halted');
-    assertPathMatches(paths[6], 'backingOff');
+    assertPathMatches(paths[0], 'idle');
+    assertPathMatches(paths[1], 'ready');
+    assertPathMatches(paths[2], 'reserving');
+    assertPathMatches(paths[3], 'executing');
+    assertPathMatches(paths[4], 'successful');
+    assertPathMatches(paths[5], 'failed');
+    assertPathMatches(paths[6], 'halted');
+    assertPathMatches(paths[7], 'backingOff');
   });
 
   test('graph', () => {
@@ -60,8 +61,7 @@ describe('TaskExecutorMachine Graph Tests', () => {
     expect(graph.children[7].id).contains('continue');
 
     expect(graph.children[8].id).contains('backingOff');
-    expect(graph.children[8].edges[0].target.id).contains('continue');
-
+    assertEdgeMaches(graph, 8, ['idle', 'continue']);
     expect(graph.children[9].id).contains('halted');
 
     expect(graph.children.length).toBe(10);

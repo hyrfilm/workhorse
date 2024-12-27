@@ -5,7 +5,7 @@ import {seconds} from "@/util/time.ts";
 
 log.setDefaultLevel(log.levels.INFO);
 
-const numTasks = 10000;
+const numTasks = 100;
 
 const workhorse = await createWorkhorse(appendHTMLTask);
 

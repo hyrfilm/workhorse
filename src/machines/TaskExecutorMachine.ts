@@ -103,7 +103,7 @@ export function createTaskExecutor(taskRunner: TaskRunner, settings: WorkhorseCo
         actors: {
             reserveHook: fromPromise(taskRunner.reserveHook),
             executeHook: fromPromise(taskRunner.executeHook),
-            successHook: fromPromise(taskRunner.sucessHook),
+            successHook: fromPromise(taskRunner.successHook),
             failureHook: fromPromise(taskRunner.failureHook),
         },
     })

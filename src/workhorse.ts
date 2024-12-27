@@ -1,5 +1,5 @@
 import {createDatabase} from "@/db/createDatabase";
-import {createTaskQueue} from "@/db/createTaskQueue";
+import {createTaskQueue} from "@/db/TaskQueue.ts";
 import {WorkhorseConfig, Payload, RunTask, TaskState} from "@/types";
 import {createTaskExecutor} from "@/machines/TaskExecutorMachine";
 import {waitFor} from "xstate";
@@ -41,8 +41,7 @@ const createWorkhorse = async (run: RunTask) : Promise<Workhorse> => {
 
     const workhorse = {
         addTask: (identity: string, payload: Payload) => {
-            const jsonPayload = JSON.stringify(payload);
-            return taskQueue.addTask(identity, jsonPayload);
+            return taskQueue.addTask(identity, payload);
         },
         getStatus: async() => {
             return {

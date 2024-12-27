@@ -18,7 +18,9 @@ export default tseslint.config(
   {
     rules: {
       '@typescript-eslint/no-empty-function': 0,
-      '@typescript-eslint/restrict-template-expressions': 0
+      '@typescript-eslint/restrict-template-expressions': 0,
+      '@typescript-eslint/consistent-type-definitions': 0,
+      '@typescript-eslint/consistent-indexed-object-style': 0,
     }
   }
 );
