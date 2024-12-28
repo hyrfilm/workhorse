@@ -1,5 +1,6 @@
 import { assertTaskRow, RunTask, TaskConsumer, TaskRow, TaskRunner} from "@/types.ts";
 import log from "loglevel";
+import {ReservationFailed} from "@/errors.ts";
 
 const createTaskRunner = (queue: TaskConsumer, run: RunTask): TaskRunner => {
     let task: undefined | TaskRow = undefined;
@@ -9,7 +10,7 @@ const createTaskRunner = (queue: TaskConsumer, run: RunTask): TaskRunner => {
             task = await queue.reserveTask();
             if (!task) {
                 log.debug('No reservation');
-                throw new Error('No reservation');
+                throw new ReservationFailed('No reservation');
             } else {
                 assertTaskRow(task);
                 log.debug(`Reserved task: ${task.taskId}`);
