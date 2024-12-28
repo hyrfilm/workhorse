@@ -19,6 +19,7 @@ interface TaskRow {
     payload: Payload;
 }
 
+type FullStatus = Record<'queued' & 'completed' & 'failed' & 'successful', number>;
 
 // TODO: Combine TaskProducer, TaskConsumer, TaskQueue -> TaskQueue
 interface TaskProducer {
@@ -32,7 +33,9 @@ interface TaskConsumer {
 }
 
 interface TaskQueue extends TaskProducer, TaskConsumer {
-    countStatus(status: TaskState): Promise<number>;
+    getSingleStatus(status: TaskState): Promise<number>;
+    getFullStatusQuery(): Promise<FullStatus>;
+    requeueFailures(): Promise<void>;
 }
 
 interface TaskRunner {
@@ -65,16 +68,16 @@ function assertTaskRow(maybeTaskRow: TaskRow | undefined): asserts maybeTaskRow 
     if (maybeTaskRow===undefined) {
         throw new Error('Invalid TaskRow (missing)');
     }
-    if (typeof maybeTaskRow?.rowId!=="number") {
-        throw new Error(`Invalid rowId: ${maybeTaskRow?.rowId}`);
+    if (typeof maybeTaskRow.rowId!=="number") {
+        throw new Error(`Invalid rowId: ${maybeTaskRow.rowId}`);
     }
-    if (typeof maybeTaskRow?.taskId!=="string") {
-        throw new Error(`Invalid taskId: ${maybeTaskRow?.taskId}`);
+    if (typeof maybeTaskRow.taskId!=="string") {
+        throw new Error(`Invalid taskId: ${maybeTaskRow.taskId}`);
     }
-    if (typeof maybeTaskRow?.payload!=="object") {
-        throw new Error(`Invalid payload: ${maybeTaskRow?.payload}`);
+    if (typeof maybeTaskRow.payload!=="object") {
+        throw new Error(`Invalid payload: ${maybeTaskRow.payload}`);
     }
 }
 
-export type { SqlExecutor, RowId, TaskRow, TaskConsumer, TaskProducer, TaskQueue, Payload, RunTask, TaskRunner, WorkhorseConfig, BackoffSettings };
+export type { SqlExecutor, RowId, TaskRow, FullStatus, TaskConsumer, TaskProducer, TaskQueue, Payload, RunTask, TaskRunner, WorkhorseConfig, BackoffSettings };
 export { TaskState, assertTaskRow };

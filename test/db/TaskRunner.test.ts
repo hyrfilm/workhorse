@@ -42,7 +42,7 @@ describe('TaskRunner', () => {
         const runStub: RunTask = async (_taskId: string, _payload: Payload) => {
         }
 
-        let queued = await taskQueue.countStatus(TaskState.queued);
+        let queued = await taskQueue.getSingleStatus(TaskState.queued);
         expect(queued).toBe(3);
 
         const taskRunner = createTaskRunner(taskQueue, runStub);
@@ -58,9 +58,9 @@ describe('TaskRunner', () => {
         await taskRunner.executeHook();
         await taskRunner.failureHook();
 
-        queued = await taskQueue.countStatus(TaskState.queued);
-        const successful = await taskQueue.countStatus(TaskState.successful);
-        const failed = await taskQueue.countStatus(TaskState.failed);
+        queued = await taskQueue.getSingleStatus(TaskState.queued);
+        const successful = await taskQueue.getSingleStatus(TaskState.successful);
+        const failed = await taskQueue.getSingleStatus(TaskState.failed);
 
         expect(queued).toBe(0);
         expect(successful).toBe(2);

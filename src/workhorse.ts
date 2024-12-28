@@ -1,6 +1,6 @@
 import {createDatabase} from "@/db/createDatabase";
 import {createTaskQueue} from "@/db/TaskQueue.ts";
-import {WorkhorseConfig, Payload, RunTask, TaskState} from "@/types";
+import {WorkhorseConfig, Payload, RunTask, TaskState, FullStatus} from "@/types";
 import {createTaskExecutor} from "@/machines/TaskExecutorMachine";
 import {waitFor} from "xstate";
 import {minutes, seconds} from "@/util/time";
@@ -23,7 +23,7 @@ interface WorkhorseStatus {
 
 interface Workhorse {
     addTask: (taskId: string, payload: Payload) => Promise<void>;
-    getStatus: () => Promise<WorkhorseStatus>;
+    getStatus: () => Promise<FullStatus>;
     poll: () => Promise<void>;
     start: () => Promise<void>;
 }
@@ -44,12 +44,12 @@ const createWorkhorse = async (run: RunTask) : Promise<Workhorse> => {
             return taskQueue.addTask(identity, payload);
         },
         getStatus: async() => {
-            return {
-                queued: await taskQueue.countStatus(TaskState.queued),
-                //TODO: executing
-                successful: await taskQueue.countStatus(TaskState.successful),
-                failed: await taskQueue.countStatus(TaskState.failed),
-            }
+            const queued = await taskQueue.getSingleStatus(TaskState.queued);
+            const executing = await taskQueue.getSingleStatus(TaskState.executing);
+            const successful = await taskQueue.getSingleStatus(TaskState.successful);
+            const failed = await taskQueue.getSingleStatus(TaskState.failed);
+
+            return { queued, executing, successful, failed };
         },
         start: async() => {
             taskExecutor.send({ type: 'start' });

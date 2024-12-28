@@ -58,6 +58,14 @@ function addTaskQuery(taskId: string, payload: Payload) {
     `;
 }
 
+function addTaskIfNotExistsQuery(taskId: string, payload: Payload) {
+    const jsonPayload = JSON.stringify(payload);
+    return `
+        INSERT INTO task_queue (task_id, task_payload, status_id)
+        VALUES ('${taskId}', '${jsonPayload}', ${TaskState.queued});
+    `;
+}
+
 function reserveTaskQuery() {
     return `
         SELECT * FROM task_queue
@@ -89,17 +97,25 @@ function taskFailureQuery(rowId: number) {
     return `
         UPDATE task_queue
         SET status_id = ${TaskState.failed},
-        completed_at = CURRENT_TIMESTAMP, 
         updated_at = CURRENT_TIMESTAMP
         WHERE id = ${rowId};
     `;
 }
 
-function countStatusQuery(status: number) {
+function requeueFailuresQuery() {
+    return `
+        UPDATE task_queue
+        SET status_id = ${TaskState.queued},
+        updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${TaskState.failed};
+    `;
+}
+
+function getSingleStatusQuery(status: number) {
     return `
         SELECT COUNT(*) FROM task_queue
         WHERE status_id = ${status};
     `;
 }
 
-export { schema, addTaskQuery, reserveTaskQuery, updateTaskStatusQuery, taskSuccessQuery, taskFailureQuery, countStatusQuery, toTaskRow };
+export { schema, addTaskQuery, addTaskIfNotExistsQuery, reserveTaskQuery, updateTaskStatusQuery, taskSuccessQuery, taskFailureQuery, requeueFailuresQuery, getSingleStatusQuery, toTaskRow };

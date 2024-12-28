@@ -1,6 +1,19 @@
 import { Payload } from "@/types";
 
+type JSONPrimitive = string | number | boolean | null;
+type JSONObject = { [key: string]: JSONValue };
+type JSONArray = JSONValue[];
+type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+
+function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
+    if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+        throw new TypeError('Payload must be a non-primitive JSON object.');
+    }
+}
+
 const printTask = async (taskId: string, payload: Payload): Promise<void> => {
+    assertNonPrimitive(payload);
+
     let delay = 0;
     let msg = '';
     if (typeof payload.delay==="number") {
@@ -15,6 +28,8 @@ const printTask = async (taskId: string, payload: Payload): Promise<void> => {
 }
 
 const jsonRequestTask = async (taskId: string, payload: Payload): Promise<void> => {
+    assertNonPrimitive(payload);
+
     let { url, body, method } = payload;
     if (typeof url!=="string") {
         url = '';
@@ -38,6 +53,8 @@ const jsonRequestTask = async (taskId: string, payload: Payload): Promise<void> 
 }
 
 const appendHTMLTask = async (taskId: string, payload: Payload): Promise<void> => {
+    assertNonPrimitive(payload);
+
     const { parentId, tag, text } = payload;
     let { delay } = payload;
     if (typeof delay!=="number") {
