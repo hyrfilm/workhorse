@@ -7,7 +7,6 @@ const executeTask = async (): Promise<void> => {};
 const handleFailure = async (): Promise<void> => {};
 const handleSuccess = async (): Promise<void> => {};
 
-//TODO: Should be passed in to make more configurable
 let backoff = createBackoff({initial: 500, multiplier: 2.5, maxTime: 16000});
 
 // Create the state machine setup

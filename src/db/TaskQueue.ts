@@ -41,7 +41,7 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
         reserveTask: async () => {
             const reserveQuery = reserveTaskQuery();
             const maybeTaskRow = await sql(reserveQuery);
-            if (maybeTaskRow.length !== 1) {
+            if (maybeTaskRow.length !== 1 || maybeTaskRow[0]==null) {
                 return undefined;
             }
             const dbRow = maybeTaskRow[0];

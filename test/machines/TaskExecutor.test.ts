@@ -6,6 +6,7 @@ import {createTaskQueue} from '@/db/TaskQueue';
 import {createDatabaseStub} from 'test/db/createDatabaseStub';
 import {createTaskExecutor} from '@/machines/TaskExecutorMachine';
 import { DuplicateTaskError } from '@/errors';
+import { aw } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
 
 declare module 'vitest' {
     export interface TestContext {
@@ -180,5 +181,48 @@ describe('TaskExecutor', () => {
         const status = await taskQueue.getStatus();
 
         expect(status.queued).toBe(1);
+    });
+
+    test('stopping & starting', async ({ taskExecutor, taskQueue }) => {
+        for(let i=0;i<1000;i++) {
+            await taskQueue.addTask(`${i}`, { taskNr: i} );
+        }
+
+        for(let i=0;i<250;i++) {
+            await taskExecutor.waitFor('ready');
+            taskExecutor.poll();
+            await taskExecutor.waitIf('busy');
+        }
+        await taskExecutor.waitFor('canStop');
+        taskExecutor.stop();
+        await taskExecutor.waitFor('stopped');
+
+        let status = await taskQueue.getStatus();
+        expect(status).toEqual({ queued: 750, successful: 250, failed: 0, executing: 0 });
+
+        //TODO: Should this throw an exeption? (right now it's just ignored)
+        taskExecutor.poll();
+
+        taskExecutor.start();
+
+        for(let i=0;i<750;i++) {
+            await taskExecutor.waitFor('ready');
+            taskExecutor.poll();
+            await taskExecutor.waitFor('executed');
+        }
+
+        status = await taskQueue.getStatus();
+        expect(status).toEqual({ queued: 0, successful: 1000, failed: 0, executing: 0 });
+    });
+
+    test('polling empty queue', async ({ taskExecutor, taskQueue }) => {
+        for(let i=0;i<250;i++) {
+            await taskExecutor.waitFor('ready');
+            taskExecutor.poll();
+            await taskExecutor.waitFor('ready');
+        }
+
+        const status = await taskQueue.getStatus();
+        expect(status).toEqual({ queued: 0, successful: 0, failed: 0, executing: 0 });
     });
 });
