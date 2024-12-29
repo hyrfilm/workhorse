@@ -1,4 +1,4 @@
-import { SqlExecutor, TaskQueue, TaskState, FullStatus } from '@/types';
+import { Payload, QueueStatus, TaskQueue, TaskRow, TaskState, DuplicateStrategy, WorkhorseConfig, RunQuery } from '@/types';
 import {
     addTaskQuery,
     reserveTaskQuery,
@@ -9,22 +9,13 @@ import {
     toTaskRow,
     requeueFailuresQuery,
     addTaskIfNotExistsQuery,
-    getFullStatusQuery
 } from './sql';
-import { aw } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
 
-enum DuplicateStrategy {
-    IGNORE = 'ignore',
-    ERROR = 'error',
-}
-
-function createTaskQueue(sqlExecutor: SqlExecutor): TaskQueue {
-    const sql = sqlExecutor;
-
-    return {
-        addTask: async (taskId, payload, ifDuplicate: DuplicateStrategy=DuplicateStrategy.IGNORE) => {
+function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
+    const taskQueue = {
+        addTask: async (taskId: string, payload: Payload) => {
             let query = "";
-            switch(ifDuplicate) {
+            switch(config.duplicates) {
                 case DuplicateStrategy.ERROR:
                     query = addTaskQuery(taskId, payload);
                     break;
@@ -43,28 +34,39 @@ function createTaskQueue(sqlExecutor: SqlExecutor): TaskQueue {
                 return undefined;
             }
             const dbRow = maybeTaskRow[0];
+
             const updateQuery = updateTaskStatusQuery(dbRow.id, TaskState.executing);
             await sql(updateQuery);
             return toTaskRow(dbRow);
         },
-        taskSuccessful: async (taskRow) => {
+        taskSuccessful: async (taskRow: TaskRow) => {
             const query = taskSuccessQuery(taskRow.rowId);
             await sql(query);
         },
-        taskFailed: async (taskRow) => {
+        taskFailed: async (taskRow: TaskRow) => {
             const query = taskFailureQuery(taskRow.rowId);
             await sql(query);
         },
-        requeueFailures: async () => {
+        requeue: async (): Promise<undefined> => {
             const query = requeueFailuresQuery();
             await sql(query);
         },
-        getSingleStatus: async (status: TaskState) => {
+        queryTaskCount: async (status: TaskState): Promise<number> => {
             const query = getSingleStatusQuery(status);
             const records = await sql(query);
-            return records[0]['COUNT(*)'];
+            return records[0]['COUNT(*)'] as number;
+        },
+        getStatus: async (): Promise<QueueStatus> => {
+            const queued = await taskQueue.queryTaskCount(TaskState.queued);
+            const executing = await taskQueue.queryTaskCount(TaskState.executing);
+            const successful = await taskQueue.queryTaskCount(TaskState.successful);
+            const failed = await taskQueue.queryTaskCount(TaskState.failed);
+
+            return { queued, executing, successful, failed };
         }
     };
+
+    return taskQueue;
 }
 
 export { createTaskQueue };

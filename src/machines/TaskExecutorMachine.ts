@@ -1,6 +1,6 @@
 import {createBackoff} from "@/util/backoff";
-import {createActor, fromPromise, setup} from "xstate";
-import {WorkhorseConfig, TaskRunner} from "@/types.ts";
+import {createActor, fromPromise, setup, waitFor} from "xstate";
+import {WorkhorseConfig, TaskRunner, TaskExecutor} from "@/types.ts";
 
 const reserveTask = async (): Promise<void> => {};
 const executeTask = async (): Promise<void> => {};
@@ -97,8 +97,8 @@ export const taskExecutorMachine = machineSetup.createMachine({
   },
 });
 
-export function createTaskExecutor(taskRunner: TaskRunner, settings: WorkhorseConfig) {
-  backoff = createBackoff(settings.backoff);
+export function createTaskExecutor(config: WorkhorseConfig, taskRunner: TaskRunner): TaskExecutor {
+  backoff = createBackoff(config.backoff);
     const machine = taskExecutorMachine.provide({
         actors: {
             reserveHook: fromPromise(taskRunner.reserveHook),
@@ -107,9 +107,26 @@ export function createTaskExecutor(taskRunner: TaskRunner, settings: WorkhorseCo
             failureHook: fromPromise(taskRunner.failureHook),
         },
     })
-    const taskExecutor = createActor(machine);
-    taskExecutor.start();
-    taskExecutor.send({ type: 'start' });
+    const actor = createActor(machine);
+    actor.start();
+
+    const taskExecutor : TaskExecutor = {
+      start: () => {
+        actor.send({ type: 'start' });
+      },
+      stop: () => {
+        actor.send({ type: 'stop'});
+      },
+      poll: () => {
+        actor.send({ type: 'poll'});
+      },
+      waitFor: async (tag) => {
+        await waitFor(actor, (state) => state.hasTag(tag));
+      },
+      waitIf: async (tag) => {
+        await waitFor(actor, (state) => !state.hasTag(tag));
+      },
+    };
 
     return taskExecutor;
 }

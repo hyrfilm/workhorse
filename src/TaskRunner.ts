@@ -1,8 +1,8 @@
-import { assertTaskRow, RunTask, TaskConsumer, TaskRow, TaskRunner} from "@/types.ts";
+import { assertTaskRow, RunTask, TaskQueue, TaskRow, TaskRunner, WorkhorseConfig} from "@/types.ts";
 import log from "loglevel";
 import {ReservationFailed} from "@/errors.ts";
 
-const createTaskRunner = (queue: TaskConsumer, run: RunTask): TaskRunner => {
+const createTaskRunner = (_config: WorkhorseConfig, queue: TaskQueue, run: RunTask): TaskRunner => {
     let task: undefined | TaskRow = undefined;
     return {
         reserveHook: async (): Promise<void> => {

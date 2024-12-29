@@ -1,67 +1,63 @@
-import {createDatabase} from "@/db/createDatabase";
-import {createTaskQueue} from "@/db/TaskQueue.ts";
-import {WorkhorseConfig, Payload, RunTask, TaskState, FullStatus} from "@/types";
-import {createTaskExecutor} from "@/machines/TaskExecutorMachine";
-import {waitFor} from "xstate";
-import {minutes, seconds} from "@/util/time";
-import {createTaskRunner} from "@/TaskRunner";
-import log from "loglevel";
-
-const workhorseConfig: WorkhorseConfig = {
-    backoff: {
-        initial: seconds(0.5),
-        multiplier: 2.5,
-        maxTime: minutes(15),
-    }
-};
-
-interface WorkhorseStatus {
-    queued: number,
-    successful: number,
-    failed: number,
-}
+import { config, getDefaultConfig } from "./config";
+import { createDatabase } from "./db/createDatabase";
+import { createTaskQueue } from "./db/TaskQueue";
+import { createTaskExecutor } from "./machines/TaskExecutorMachine";
+import { createTaskRunner } from "./TaskRunner";
+import { DefaultWorkhorseConfig, Payload, QueueStatus, RunTask, WorkhorseConfig } from "./types";
 
 interface Workhorse {
     addTask: (taskId: string, payload: Payload) => Promise<void>;
-    getStatus: () => Promise<FullStatus>;
+    getStatus: () => Promise<QueueStatus>;
     poll: () => Promise<void>;
     start: () => Promise<void>;
 }
 
-const createWorkhorse = async (run: RunTask) : Promise<Workhorse> => {
-    log.info('config: ', workhorseConfig);
+const getDefaultConfig = () : DefaultWorkhorseConfig => {
+    const defaultConfig = structuredClone(config);
+    
+    defaultConfig.factories.createDatabase = createDatabase;
+    defaultConfig.factories.createTaskQueue = createTaskQueue;
+    defaultConfig.factories.createTaskRunner = createTaskRunner;
+    defaultConfig.factories.createTaskExecutor = createTaskExecutor;
 
-    const sqlExecutor = await createDatabase();
-    const taskQueue =  createTaskQueue(sqlExecutor);
-    const taskRunner = createTaskRunner(taskQueue, run);
-    const taskExecutor = createTaskExecutor(taskRunner, workhorseConfig);
+    return defaultConfig as DefaultWorkhorseConfig;
+}
+
+const createWorkhorse = async (run: RunTask) : Promise<Workhorse> => {
+    const config = getDefaultConfig();
+    const runQuery = await config.factories.createDatabase(config);
+    const taskQueue =  config.factories.createTaskQueue(config, runQuery);
+    const taskRunner = config.factories.createTaskRunner(config, taskQueue, run);
+    const taskExecutor = config.factories.createTaskExecutor(config, taskRunner);
 
     //TODO: Add some good way to inspect / diagnose stuff
     //taskExecutor.subscribe((snapshot) => log.info(snapshot.value));
 
     const workhorse = {
-        addTask: (identity: string, payload: Payload) => {
-            return taskQueue.addTask(identity, payload);
+        addTask: async (identity: string, payload: Payload) => {
+            await taskQueue.addTask(identity, payload);
         },
         getStatus: async() => {
-            const queued = await taskQueue.getSingleStatus(TaskState.queued);
-            const executing = await taskQueue.getSingleStatus(TaskState.executing);
-            const successful = await taskQueue.getSingleStatus(TaskState.successful);
-            const failed = await taskQueue.getSingleStatus(TaskState.failed);
-
-            return { queued, executing, successful, failed };
+            return await taskQueue.getStatus();
         },
         start: async() => {
-            taskExecutor.send({ type: 'start' });
-            await waitFor(taskExecutor, (state) => state.hasTag('ready'));
+            taskExecutor.start();
+            await taskExecutor.waitFor('ready');
         },
         poll: async() => {
-            await waitFor(taskExecutor, (state) => state.hasTag('ready'));
-            taskExecutor.send( { type: 'poll' });
+            await taskExecutor.waitFor('ready');
+            taskExecutor.poll();
+        },
+        stop: async() => {
+            await taskExecutor.waitFor('canStop');
+            taskExecutor.stop();
+            await taskExecutor.waitFor('stopped');
         }
     }
+
+    await workhorse.start();
 
     return workhorse;
 }
 
-export { createWorkhorse, workhorseConfig };
+export { createWorkhorse, config as workhorseConfig };

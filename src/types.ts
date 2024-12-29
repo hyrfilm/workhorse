@@ -1,8 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SqlExecutor = <Result extends Record<string, any>>(
-    queryTemplate: TemplateStringsArray | string,
-    ...params: unknown[]
-  ) => Promise<Result[]>;
+type SqlExecutor = (queryTemplate: TemplateStringsArray | string, ...params: unknown[]) => Promise<QueryResult[]>;
+type QueryResult = Record<string, string | number | null>[];
+type RunQuery = (query: string) => Promise<QueryResult[]>; 
 
 enum TaskState {
     queued      = 1,
@@ -19,31 +18,42 @@ interface TaskRow {
     payload: Payload;
 }
 
-type FullStatus = Record<'queued' & 'completed' & 'failed' & 'successful', number>;
-
-// TODO: Combine TaskProducer, TaskConsumer, TaskQueue -> TaskQueue
-interface TaskProducer {
-    addTask(taskId: string, payload: Payload) : Promise<void>;
+interface WorkhorseStatus {
+    queued: number;
+    completed: number;
+    successful: number;
+    failed: number;
 }
 
-interface TaskConsumer {
+interface TaskQueue {
+    addTask(taskId: string, payload: Payload) : Promise<void>;
     reserveTask() : Promise<TaskRow | undefined>;
     taskSuccessful(taskRow: TaskRow) : Promise<void>;
     taskFailed(taskRow: TaskRow): Promise<void>;
+    requeue: () => Promise<void>;
+    queryTaskCount(status: TaskState): Promise<number>;
+    getStatus(): Promise<QueueStatus>;
 }
 
-interface TaskQueue extends TaskProducer, TaskConsumer {
-    getSingleStatus(status: TaskState): Promise<number>;
-    getFullStatusQuery(): Promise<FullStatus>;
-    requeueFailures(): Promise<void>;
+enum DuplicateStrategy {
+    IGNORE = 'ignore',
+    ERROR = 'error',
 }
 
 interface TaskRunner {
     executeHook: () => Promise<void>;
     successHook: () => Promise<void>;
     reserveHook: () => Promise<void>;
-    failureHook: () => Promise<void>
+    failureHook: () => Promise<void>;
 }
+
+interface TaskExecutor {
+    start(): void;
+    stop(): void;
+    poll(): void;
+    waitFor(tag: 'ready' | 'canStop' | 'stopped' | 'executed'): Promise<void>;
+    waitIf(tag: 'busy'): Promise<void>;
+}  
 
 type JSONPrimitive = string | number | boolean | null;
 type JSONObject = { [key: string]: JSONValue };
@@ -60,8 +70,36 @@ interface BackoffSettings {
     maxTime: number;
 }
 
+type createDatabaseFunc = (config: WorkhorseConfig) => Promise<RunQuery>;
+type createTaskQueueFunc = (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
+type createTaskRunnerFunc = (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskRunner;
+type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskRunner) => TaskExecutor;
+
 interface WorkhorseConfig {
     backoff: BackoffSettings;
+    duplicates: DuplicateStrategy;
+    factories: {
+        createDatabase: createDatabaseFunc | undefined;
+        createTaskQueue: createTaskQueueFunc | undefined;
+        createTaskRunner: createTaskRunnerFunc| undefined;
+        createTaskExecutor: createTaskExecutorFunc | undefined;
+    }
+}
+
+interface DefaultWorkhorseConfig extends WorkhorseConfig {
+    factories: {
+        createDatabase: createDatabaseFunc;
+        createTaskQueue: createTaskQueueFunc;
+        createTaskRunner: createTaskRunnerFunc;
+        createTaskExecutor: createTaskExecutorFunc;    
+    }
+}
+
+interface QueueStatus {
+    queued: number;
+    executing: number;
+    successful: number;
+    failed: number;
 }
 
 function assertTaskRow(maybeTaskRow: TaskRow | undefined): asserts maybeTaskRow is TaskRow {
@@ -79,5 +117,12 @@ function assertTaskRow(maybeTaskRow: TaskRow | undefined): asserts maybeTaskRow 
     }
 }
 
-export type { SqlExecutor, RowId, TaskRow, FullStatus, TaskConsumer, TaskProducer, TaskQueue, Payload, RunTask, TaskRunner, WorkhorseConfig, BackoffSettings };
-export { TaskState, assertTaskRow };
+function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
+    if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+        throw new TypeError('Payload must be a non-primitive JSON object.');
+    }
+}
+
+
+export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskRunner, TaskExecutor, WorkhorseConfig, DefaultWorkhorseConfig, BackoffSettings };
+export { TaskState, DuplicateStrategy, assertTaskRow, assertNonPrimitive };

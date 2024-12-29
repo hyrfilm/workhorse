@@ -107,7 +107,7 @@ function requeueFailuresQuery() {
         UPDATE task_queue
         SET status_id = ${TaskState.queued},
         updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${TaskState.failed};
+        WHERE status_id = ${TaskState.failed};
     `;
 }
 

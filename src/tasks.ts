@@ -1,15 +1,4 @@
-import { Payload } from "@/types";
-
-type JSONPrimitive = string | number | boolean | null;
-type JSONObject = { [key: string]: JSONValue };
-type JSONArray = JSONValue[];
-type JSONValue = JSONPrimitive | JSONObject | JSONArray;
-
-function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
-    if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
-        throw new TypeError('Payload must be a non-primitive JSON object.');
-    }
-}
+import { assertNonPrimitive, Payload } from "@/types";
 
 const printTask = async (taskId: string, payload: Payload): Promise<void> => {
     assertNonPrimitive(payload);
