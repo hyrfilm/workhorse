@@ -21,6 +21,7 @@ export default tseslint.config(
       '@typescript-eslint/restrict-template-expressions': 0,
       '@typescript-eslint/consistent-type-definitions': 0,
       '@typescript-eslint/consistent-indexed-object-style': 0,
+      '@typescript-eslint': ["error", { "argsIgnorePattern": "^_" }],
     }
   }
 );

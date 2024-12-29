@@ -1,52 +1,65 @@
 import {createTaskRunner} from '@/TaskRunner';
 import {beforeEach, describe, expect, test} from 'vitest';
-import {assertNonPrimitive, Payload, TaskExecutor, TaskQueue } from '@/types';
-import { config } from '@/config';
-import { createTaskQueue } from '@/db/TaskQueue';
-import { createDatabaseStub } from 'test/db/createDatabaseStub';
-import { createTaskExecutor } from '@/machines/TaskExecutorMachine';
+import {DuplicateStrategy, Payload, TaskExecutor, TaskQueue, WorkhorseConfig} from '@/types';
+import {config} from '@/config';
+import {createTaskQueue} from '@/db/TaskQueue';
+import {createDatabaseStub} from 'test/db/createDatabaseStub';
+import {createTaskExecutor} from '@/machines/TaskExecutorMachine';
+import { DuplicateTaskError } from '@/errors';
 
 declare module 'vitest' {
     export interface TestContext {
         taskQueue: TaskQueue;
-        executedTasks: [string, Payload][];
+        // taskId, payload, success, num retries
+        executedTasks: [string, Payload, boolean][];
         taskExecutor: TaskExecutor;
+        // The ids of tasks that we want to fail are placed in this set
+        failIds: Set<string>;
+        config: WorkhorseConfig,
     }
   }
 
 describe('TaskExecutor', () => {
     beforeEach(async (context) => {
-        config.factories.createDatabase = createDatabaseStub;
-        config.factories.createTaskQueue = createTaskQueue;
-        config.factories.createTaskRunner = createTaskRunner;
-        config.factories.createTaskExecutor = createTaskExecutor;
-        // We could use XState's simulated clocks instead but here we just set
+        config.factories = {
+            createDatabase: createDatabaseStub,
+            createTaskQueue: createTaskQueue,
+            createTaskRunner: createTaskRunner,
+            createTaskExecutor: createTaskExecutor,
+        };
+        // We could use XState's simulated clocks instead, but here we just set
         // the backoff to not wait at all so that we don't need to wait for failing tasks
         config.backoff.initial = 0;
         config.backoff.maxTime = 0;
         config.backoff.multiplier = 0;
-
+        config.duplicates = DuplicateStrategy.IGNORE;
+        context.config = config;
         context.executedTasks = [];
+        // task ids placed here will fail
+        context.failIds = new Set();
+
         const runTask = async (taskId: string, payload: Payload): Promise<void> => {
-            assertNonPrimitive(payload);
-            context.executedTasks.push([taskId, payload]);
-            if (payload.success) {
-                return Promise.resolve();
+            const successful = true;
+            const failed = false;
+            if(context.failIds.has(taskId)) {
+                context.executedTasks.push([taskId, payload, failed]);
+                await Promise.reject(new Error(`task ${taskId} failed`));
             } else {
-                await Promise.reject(new Error('Oups'));
+                context.executedTasks.push([taskId, payload, successful]);
+                await Promise.resolve();
             }
         }
 
-        const runQuery = await config.factories.createDatabase(config);
-        context.taskQueue = config.factories.createTaskQueue(config, runQuery);
-        const taskRunner = config.factories.createTaskRunner(config, context.taskQueue, runTask);
-        context.taskExecutor = config.factories.createTaskExecutor(config, taskRunner);
+        const runQuery = await createDatabaseStub();
+        context.taskQueue = createTaskQueue(config, runQuery);
+        const taskRunner = createTaskRunner(config, context.taskQueue, runTask);
+        context.taskExecutor = createTaskExecutor(config, taskRunner);
         context.taskExecutor.start();
     });
 
     test('run successful tasks', async ({ taskQueue, taskExecutor, executedTasks }) => {
         for(let i=0;i<100;i++) {
-            await taskQueue.addTask(`${i}`, { success: true });                        
+            await taskQueue.addTask(`${i}`, { taskNr: i} );
         }
         for(let i=0;i<100;i++) {
             await taskExecutor.waitFor('ready');
@@ -55,15 +68,19 @@ describe('TaskExecutor', () => {
         }
 
         for(let i=0;i<100;i++) {
-            expect(executedTasks[i]).toEqual([`${i}`, {'success': true}]);
+            const successful = true;
+            expect(executedTasks[i]).toEqual([`${i}`, { taskNr: i}, successful]);
         }
     });
 
 
-    test('run every other task failing', async ({ taskQueue, taskExecutor, executedTasks }) => {
+    test('run every other task failing', async ({ failIds, taskQueue, taskExecutor, executedTasks }) => {
         for(let i=0;i<10;i++) {
-            const isEven = (i % 2)
-            await taskQueue.addTask(`${i}`, { success: isEven });
+            const isEven = (i % 2) !== 0;
+            if (isEven) {
+                failIds.add(`${i}`);
+            }
+            await taskQueue.addTask(`${i}`, {});
         }
         for(let i=0;i<10;i++) {
             await taskExecutor.waitFor('ready');
@@ -73,16 +90,21 @@ describe('TaskExecutor', () => {
         await taskExecutor.waitFor('executed')
 
         for(let i=0;i<10;i++) {
-            const isEven = (i % 2)
-            expect(executedTasks[i]).toEqual([`${i}`, {'success': isEven}]);
+            const isEven = (i % 2) === 0;
+            const successful = isEven;
+            expect(executedTasks[i]).toEqual([`${i}`, {}, successful]);
         }
     });
 
-    test('requeue failed tasks', async ({ taskQueue, taskExecutor, executedTasks }) => {
-        const successFunc = (i:number) => (i % 2);
+    test('requeue failed tasks', async ({ failIds, taskQueue, taskExecutor }) => {
         for(let i=0;i<10;i++) {
-            await taskQueue.addTask(`${i}`, { success: successFunc(i) });
+            const taskId = `${i}`;
+            await taskQueue.addTask(taskId, {});
+            if (i>=5) {
+                failIds.add(taskId);
+            }
         }
+
         let status = await taskQueue.getStatus();
         expect(status.queued).toBe(10);
         expect(status.executing).toBe(0);
@@ -97,10 +119,7 @@ describe('TaskExecutor', () => {
         await taskExecutor.waitFor('executed');
 
         status = await taskQueue.getStatus();
-        expect(status.queued).toBe(0);
-        expect(status.executing).toBe(0);
-        expect(status.successful).toBe(5);
-        expect(status.failed).toBe(5);
+        expect(status).toEqual({queued: 0, executing: 0, successful: 5, failed: 5});
 
         // nothing should happen
         for(let i=0;i<100;i++) {
@@ -124,5 +143,42 @@ describe('TaskExecutor', () => {
         expect(status.failed).toBe(0);
         expect(status.queued).toBe(5);
 
+        // make every task succeed
+        failIds.clear();
+        for(let i=0;i<5;i++) {
+            await taskExecutor.waitFor('ready');
+            taskExecutor.poll();
+            await taskExecutor.waitFor('executed');
+        }
+        // now all should have succeeded
+        status = await taskQueue.getStatus();
+
+        expect(status).toEqual({queued: 0, executing: 0, successful: 10, failed: 0});
+    });
+
+    test('DuplicateStrategy - IGNORE', async ({ config, taskQueue }) => {
+        config.duplicates = DuplicateStrategy.IGNORE;
+        await taskQueue.addTask('task-1', {})
+        await taskQueue.addTask('task-1', {})
+        await taskQueue.addTask('task-1', {})
+
+        const status = await taskQueue.getStatus();
+
+        expect(status.queued).toBe(1);
+    });
+
+    test('DuplicateStrategy - FORBID', async ({ config, taskQueue }) => {
+        config.duplicates = DuplicateStrategy.FORBID;
+        await taskQueue.addTask('task-1', {});
+        try {
+            await taskQueue.addTask('task-1', {});
+        } catch(e) {
+            expect(e instanceof Error).toBe(true);
+            expect(e instanceof DuplicateTaskError).toBe(true);
+        }
+
+        const status = await taskQueue.getStatus();
+
+        expect(status.queued).toBe(1);
     });
 });

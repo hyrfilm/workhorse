@@ -10,13 +10,14 @@ import {
     requeueFailuresQuery,
     addTaskIfNotExistsQuery,
 } from './sql';
+import {DuplicateTaskError} from "@/errors.ts";
 
 function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
     const taskQueue = {
         addTask: async (taskId: string, payload: Payload) => {
             let query = "";
             switch(config.duplicates) {
-                case DuplicateStrategy.ERROR:
+                case DuplicateStrategy.FORBID:
                     query = addTaskQuery(taskId, payload);
                     break;
                 case DuplicateStrategy.IGNORE:
@@ -25,7 +26,17 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
                 default:
                     query = "This should not be possible" as never;
             }
-            await sql(query);
+            try {
+                await sql(query);
+            } catch(e) {
+                if (e instanceof Error) {
+                    if ("code" in e) {
+                        if (e.code==="SQLITE_CONSTRAINT_UNIQUE") {
+                            throw new DuplicateTaskError(`Duplicate task: ${taskId}`);
+                        }
+                    }
+                }
+            }
         },
         reserveTask: async () => {
             const reserveQuery = reserveTaskQuery();

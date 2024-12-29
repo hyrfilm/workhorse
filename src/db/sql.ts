@@ -61,7 +61,7 @@ function addTaskQuery(taskId: string, payload: Payload) {
 function addTaskIfNotExistsQuery(taskId: string, payload: Payload) {
     const jsonPayload = JSON.stringify(payload);
     return `
-        INSERT INTO task_queue (task_id, task_payload, status_id)
+        INSERT OR IGNORE INTO task_queue (task_id, task_payload, status_id)
         VALUES ('${taskId}', '${jsonPayload}', ${TaskState.queued});
     `;
 }

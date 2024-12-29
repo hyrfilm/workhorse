@@ -1,9 +1,9 @@
-import { config, getDefaultConfig } from "./config";
+import { config } from "./config";
 import { createDatabase } from "./db/createDatabase";
 import { createTaskQueue } from "./db/TaskQueue";
 import { createTaskExecutor } from "./machines/TaskExecutorMachine";
 import { createTaskRunner } from "./TaskRunner";
-import { DefaultWorkhorseConfig, Payload, QueueStatus, RunTask, WorkhorseConfig } from "./types";
+import { DefaultWorkhorseConfig, Payload, QueueStatus, RunTask } from "./types";
 
 interface Workhorse {
     addTask: (taskId: string, payload: Payload) => Promise<void>;

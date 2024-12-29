@@ -1,3 +1,4 @@
-class ReservationFailed extends Error {}
+class ReservationFailed extends Error {};
+class DuplicateTaskError extends Error {};
 
-export { ReservationFailed };
+export { ReservationFailed, DuplicateTaskError };

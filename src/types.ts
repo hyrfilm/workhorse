@@ -36,8 +36,10 @@ interface TaskQueue {
 }
 
 enum DuplicateStrategy {
+    // if a task is added with an id that already exist ignore it
     IGNORE = 'ignore',
-    ERROR = 'error',
+    // if a task is added with an id that already throw an error
+    FORBID = 'forbid',
 }
 
 interface TaskRunner {
