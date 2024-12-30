@@ -49,12 +49,20 @@ interface TaskRunner {
     failureHook: () => Promise<void>;
 }
 
-interface TaskExecutor {
+// Operations possible both on a single TaskExecutor and an arbitrary group of them
+interface TaskExecutorPool {
+    startAll(): Promise<void>;
+    stopAll(): Promise<void>;
+    pollAll(): Promise<void>;
+}
+
+// Operations possible on a single TaskExecutor
+interface SingleTaskExecutor {
     start(): void;
     stop(): void;
     poll(): void;
-    waitFor(tag: 'ready' | 'canStop' | 'stopped' | 'executed'): Promise<void>;
-    waitIf(tag: 'busy'): Promise<void>;
+    waitFor(tag: 'ready' | 'busy' | 'canStop' | 'stopped' | 'executed'): Promise<void>;
+    waitIf(tag: 'busy' | 'executing'): Promise<void>;
     getStatus(): 'stopped' | 'started' | 'critical'; //TODO: Move the types from the machine into this file to make more DRY
 }  
 
@@ -76,20 +84,27 @@ interface BackoffSettings {
 type createDatabaseFunc = (config: WorkhorseConfig) => Promise<RunQuery>;
 type createTaskQueueFunc = (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
 type createTaskRunnerFunc = (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskRunner;
-type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskRunner) => TaskExecutor;
+type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskRunner) => SingleTaskExecutor;
 
 interface WorkhorseConfig {
     backoff: BackoffSettings;
     duplicates: DuplicateStrategy;
     concurrency: number,
-    polling: {
+    poll: {
         auto: boolean,
         interval: number,
-        waitWhen: 'busy' | 'executing'
+        pre: {
+            wait: 'ready'
+            timeout?: number,
+        },
+        post: {
+            wait: 'none' | 'busy' | 'executing' | 'ready'
+            timeout?: number,
+        }
     },
     taks: {
         include: {
-            highPrecisionTimer: boolean
+            rowId: boolean
         },
     },
     factories: {
@@ -138,5 +153,5 @@ function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
 }
 
 
-export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskRunner, TaskExecutor, WorkhorseConfig, DefaultWorkhorseConfig, BackoffSettings };
+export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskRunner, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, DefaultWorkhorseConfig, BackoffSettings };
 export { TaskState, DuplicateStrategy, assertTaskRow, assertNonPrimitive };

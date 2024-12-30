@@ -21,7 +21,9 @@ import {
     addTaskIfNotExistsQuery,
 } from './sql';
 import {DuplicateTaskError} from "@/errors.ts";
+import { Q } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
 
+let successful = 0;
 function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
     const taskQueue = {
         addTask: async (taskId: string, payload: Payload) => {
@@ -76,6 +78,7 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
         queryTaskCount: async (status: TaskState): Promise<number> => {
             const query = getSingleStatusQuery(status);
             const records = await sql(query);
+
             const record = records[0];
             const key = 'COUNT(*)';
             if (key in record && record[key]!=="number") {

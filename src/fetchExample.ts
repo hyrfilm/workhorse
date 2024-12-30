@@ -1,30 +1,50 @@
 import log from "loglevel";
 import {createWorkhorse} from "@/workhorse.ts";
 import * as tasks from "@/tasks.ts";
+import { config } from "./config";
+import { seconds } from "./util/time";
 
-log.info("Creating workhorse instance...");
+export async function fetchExample() : Promise<void> {
+ 
+    log.setDefaultLevel(log.levels.INFO);
+    
+    config.concurrency = 50;
+    config.poll.post
+    config.poll.auto = true;
 
-const workhorse = await createWorkhorse(tasks.jsonRequestTask);
+    log.info("Creating workhorse instance...");
 
-log.info("Creating tasks...");
+    const numTasks = 100;
 
+    const workhorse = await createWorkhorse(tasks.jsonRequestTask);
 
-for (let i=0;i<1000;i++) {
-    const url = `https://jsonplaceholder.typicode.com/posts`;
-    const body = { title: `title ${i}`, body: `body ${i}`, userId: i};
-    const method = 'POST';
+    log.info(`Creating ${numTasks} tasks...`);
 
-    await workhorse.addTask(`task-${i}`, { url, method, body });
-}
+    for (let i=0;i<numTasks;i++) {
+        const url = `https://jsonplaceholder.typicode.com/posts`;
+        const body = { title: `title ${i}`, body: `body ${i}`, userId: i};
+        const method = 'POST';
 
-log.info("Processing tasks...");
+        const taskId = `task-${i}`
+        workhorse.addTaskSync(taskId, { url, method, body });
+        log.info(`Task added: ${taskId}`);
+    }
 
-let done = false;
+    log.info("Processing tasks...");
 
-while(!done) {
-    await workhorse.poll();
-    const status = await workhorse.getStatus();
-    if (!status.queued) {
-        done = true;
+    poller();
+
+    async function poller() {
+        await workhorse.poll();
+        const status = await workhorse.getStatus();
+        log.info(JSON.stringify(status));
+        if (status.queued>0 || status.executing>0) {
+            setTimeout(poller, seconds(0.25));
+        } else {
+            alert("Done");
+            log.info("Stopping workhorse...");
+            await workhorse.stop();
+            log.info("Done.")
+        }
     }
 }

@@ -1,6 +1,6 @@
 import {createTaskRunner} from '@/TaskRunner';
 import {beforeEach, describe, expect, test} from 'vitest';
-import {DuplicateStrategy, Payload, TaskExecutor, TaskQueue, WorkhorseConfig} from '@/types';
+import {DuplicateStrategy, Payload, SingleTaskExecutor, TaskQueue, WorkhorseConfig} from '@/types';
 import {config} from '@/config';
 import {createTaskQueue} from '@/db/TaskQueue';
 import {createDatabaseStub} from 'test/db/createDatabaseStub';
@@ -13,7 +13,7 @@ declare module 'vitest' {
         taskQueue: TaskQueue;
         // tuple: [taskId, payload, success, num retries]
         executedTasks: [string, Payload, boolean][];
-        taskExecutor: TaskExecutor;
+        taskExecutor: SingleTaskExecutor;
         taskRunner: TaskRunner,
         // The ids of tasks that we want to fail are placed in this set
         failIds: Set<string>;
