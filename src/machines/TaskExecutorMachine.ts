@@ -9,12 +9,16 @@ const handleSuccess = async (): Promise<void> => {};
 
 let backoff = createBackoff({initial: 500, multiplier: 2.5, maxTime: 16000});
 
+type Event = { type: "start" } | { type: "stop" } | { type: "poll" };
+type Tag = 'stopped' | 'started' | 'ready' | 'canStop' | 'busy' | 'executing' | 'executed' | 'failure' | 'success' | 'critical';
+type Status = 'stopped' | 'started' | 'critical';
+
 // Create the state machine setup
 const machineSetup = setup({
   types: {
     context: {},
-    events: {} as { type: "start" } | { type: "stop" } | { type: "poll" },
-    tags: {} as 'ready' | 'stopped' | 'canStop' | 'busy' | 'executing' | 'executed' | 'failure' | 'success' | 'critical'
+    events: {} as Event,
+    tags: {} as Tag,
   },
   actors: {
     reserveHook: fromPromise(reserveTask),
@@ -36,14 +40,14 @@ export const taskExecutorMachine = machineSetup.createMachine({
       tags: ['stopped', 'canStop'],
       on: { start: { target: "ready"} } },
     ready: {
-      tags: ['ready', 'canStop'],
+      tags: ['ready', 'canStop', 'started'],
       on: {
         poll: { target: "reservingTask" },
         stop: { target: "idle" },
       },
     },
     reservingTask: {
-      tags: ['busy'],
+      tags: ['busy', 'started'],
       invoke: {
         src: "reserveHook",
         onDone: { target: "taskExecuting" },
@@ -51,7 +55,7 @@ export const taskExecutorMachine = machineSetup.createMachine({
       },
     },
     taskExecuting: {
-      tags: ['executing'],
+      tags: ['executing', 'started'],
       invoke: {
         src: "executeHook",
         onDone: { target: "taskSuccessful" },
@@ -59,10 +63,11 @@ export const taskExecutorMachine = machineSetup.createMachine({
       },
     },
     noReservation: {
+      tags: ['started'],
       always: { target: "continue" },
     },
     taskFailed: {
-      tags: ['failure', 'executed'],
+      tags: ['failure', 'executed', 'started'],
       invoke: {
         src: "failureHook",
         onDone: { target: "backingOff" },
@@ -70,7 +75,7 @@ export const taskExecutorMachine = machineSetup.createMachine({
       },
     },
     taskSuccessful: {
-      tags: ['success', 'executed'],
+      tags: ['success', 'executed', 'started'],
       entry: () => {backoff.resetBackoff()},
       invoke: {
         src: "successHook",
@@ -79,10 +84,11 @@ export const taskExecutorMachine = machineSetup.createMachine({
       },
     },
     continue: {
+      tags: ['started'],
       always: { target: "ready" },
     },
     backingOff: {
-      tags: ['canStop'],
+      tags: ['canStop', 'started'],
       on: { stop: 'idle'},
       after: {
         DELAY: { target: "continue" },
@@ -105,7 +111,8 @@ export function createTaskExecutor(config: WorkhorseConfig, taskRunner: TaskRunn
             successHook: fromPromise(taskRunner.successHook),
             failureHook: fromPromise(taskRunner.failureHook),
         },
-    })
+    });
+
     const actor = createActor(machine);
     actor.start();
 
@@ -125,6 +132,17 @@ export function createTaskExecutor(config: WorkhorseConfig, taskRunner: TaskRunn
       waitIf: async (tag) => {
         await waitFor(actor, (state) => !state.hasTag(tag));
       },
+      getStatus: (): Status => {
+        const snapshot = actor.getSnapshot();
+        const statusTags : Tag[] = ['started', 'critical', 'stopped'];
+        for (const tag of statusTags) {
+          if (snapshot.hasTag(tag)) {
+            return tag as Status;
+          }
+        }
+        const unreachable : never = snapshot.value as never;
+        throw new Error(`Unexpected state: ${unreachable} ${JSON.stringify(snapshot.tags)}`);
+      }
     };
 
     return taskExecutor;

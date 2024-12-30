@@ -55,6 +55,7 @@ interface TaskExecutor {
     poll(): void;
     waitFor(tag: 'ready' | 'canStop' | 'stopped' | 'executed'): Promise<void>;
     waitIf(tag: 'busy'): Promise<void>;
+    getStatus(): 'stopped' | 'started' | 'critical'; //TODO: Move the types from the machine into this file to make more DRY
 }  
 
 type JSONPrimitive = string | number | boolean | null;

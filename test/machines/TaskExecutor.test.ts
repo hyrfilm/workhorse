@@ -6,14 +6,15 @@ import {createTaskQueue} from '@/db/TaskQueue';
 import {createDatabaseStub} from 'test/db/createDatabaseStub';
 import {createTaskExecutor} from '@/machines/TaskExecutorMachine';
 import { DuplicateTaskError } from '@/errors';
-import { aw } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
+import {TaskRunner} from "@/types.ts";
 
 declare module 'vitest' {
     export interface TestContext {
         taskQueue: TaskQueue;
-        // taskId, payload, success, num retries
+        // tuple: [taskId, payload, success, num retries]
         executedTasks: [string, Payload, boolean][];
         taskExecutor: TaskExecutor;
+        taskRunner: TaskRunner,
         // The ids of tasks that we want to fail are placed in this set
         failIds: Set<string>;
         config: WorkhorseConfig,
@@ -53,8 +54,8 @@ describe('TaskExecutor', () => {
 
         const runQuery = await createDatabaseStub();
         context.taskQueue = createTaskQueue(config, runQuery);
-        const taskRunner = createTaskRunner(config, context.taskQueue, runTask);
-        context.taskExecutor = createTaskExecutor(config, taskRunner);
+        context.taskRunner = createTaskRunner(config, context.taskQueue, runTask);
+        context.taskExecutor = createTaskExecutor(config, context.taskRunner);
         context.taskExecutor.start();
     });
 
@@ -224,5 +225,21 @@ describe('TaskExecutor', () => {
 
         const status = await taskQueue.getStatus();
         expect(status).toEqual({ queued: 0, successful: 0, failed: 0, executing: 0 });
+    });
+
+    test('halting if failing to update task success', async ({ config, taskQueue, taskRunner }) => {
+        taskRunner.successHook = async (): Promise<void> => {
+            throw new Error('Oups'); 
+        }
+
+        const taskExecutor = createTaskExecutor(config, taskRunner);
+        taskExecutor.start();
+
+        await taskQueue.addTask('task', {});
+
+        await taskExecutor.waitFor('ready');
+        taskExecutor.poll();
+        await taskExecutor.waitFor('stopped');
+        expect(taskExecutor.getStatus()).toBe('critical');
     });
 });
