@@ -1,7 +1,54 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SqlExecutor = (queryTemplate: TemplateStringsArray | string, ...params: unknown[]) => Promise<QueryResult[]>;
 type QueryResult = Record<string, string | number | null>[];
-type RunQuery = (query: string) => Promise<QueryResult[]>; 
+type RunQuery = (query: string) => Promise<QueryResult[]>;
+
+interface Workhorse {
+    addTaskSync: (taskId: string, payload: Payload) => void;
+    addTask: (taskId: string, payload: Payload) => Promise<void>;
+    getStatus: () => Promise<QueueStatus>;
+    poll: () => Promise<void>;
+    start: () => Promise<void>;
+    stop: () => Promise<void>;
+    shutdown: () => Promise<QueueStatus>;
+}
+
+interface WorkhorseConfig {
+    backoff: BackoffSettings;
+    duplicates: DuplicateStrategy;
+    concurrency: number,
+    poll: {
+        auto: boolean,
+        interval: number,
+        pre: {
+            wait: 'ready'
+            timeout?: number,
+        },
+        post: {
+            wait: 'none' | 'busy' | 'executing' | 'ready'
+            timeout?: number,
+        }
+    },
+    taks: {
+        include: {
+            rowId: boolean
+        },
+    },
+    factories: {
+        createDatabase: createDatabaseFunc
+        createTaskQueue: createTaskQueueFunc
+        createTaskRunner: createTaskRunnerFunc
+        createTaskExecutor: createTaskExecutorFunc
+        createExecutorPool: createExecutorPoolFunc
+    }
+}
+
+type createDatabaseFunc = (config: WorkhorseConfig) => Promise<RunQuery>;
+type createTaskQueueFunc = (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
+type createTaskRunnerFunc = (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskRunner;
+type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskRunner) => SingleTaskExecutor;
+type createExecutorPoolFunc = (config: WorkhorseConfig, queue: TaskQueue, runTask: RunTask) => TaskExecutorPool;
+
 
 enum TaskState {
     queued      = 1,
@@ -49,14 +96,15 @@ interface TaskRunner {
     failureHook: () => Promise<void>;
 }
 
-// Operations possible both on a single TaskExecutor and an arbitrary group of them
+// Holds TaskExecutors, determined by config.concurrency
 interface TaskExecutorPool {
     startAll(): Promise<void>;
     stopAll(): Promise<void>;
     pollAll(): Promise<void>;
+    shutdown(): Promise<void>;
 }
 
-// Operations possible on a single TaskExecutor
+// Interface for the state machine that reserves taks in db, executes them and writes the result back
 interface SingleTaskExecutor {
     start(): void;
     stop(): void;
@@ -79,49 +127,6 @@ interface BackoffSettings {
     initial: number;
     multiplier: number;
     maxTime: number;
-}
-
-type createDatabaseFunc = (config: WorkhorseConfig) => Promise<RunQuery>;
-type createTaskQueueFunc = (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
-type createTaskRunnerFunc = (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskRunner;
-type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskRunner) => SingleTaskExecutor;
-
-interface WorkhorseConfig {
-    backoff: BackoffSettings;
-    duplicates: DuplicateStrategy;
-    concurrency: number,
-    poll: {
-        auto: boolean,
-        interval: number,
-        pre: {
-            wait: 'ready'
-            timeout?: number,
-        },
-        post: {
-            wait: 'none' | 'busy' | 'executing' | 'ready'
-            timeout?: number,
-        }
-    },
-    taks: {
-        include: {
-            rowId: boolean
-        },
-    },
-    factories: {
-        createDatabase: createDatabaseFunc | undefined;
-        createTaskQueue: createTaskQueueFunc | undefined;
-        createTaskRunner: createTaskRunnerFunc| undefined;
-        createTaskExecutor: createTaskExecutorFunc | undefined;
-    }
-}
-
-interface DefaultWorkhorseConfig extends WorkhorseConfig {
-    factories: {
-        createDatabase: createDatabaseFunc;
-        createTaskQueue: createTaskQueueFunc;
-        createTaskRunner: createTaskRunnerFunc;
-        createTaskExecutor: createTaskExecutorFunc;    
-    }
 }
 
 interface QueueStatus {
@@ -153,5 +158,6 @@ function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
 }
 
 
-export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskRunner, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, DefaultWorkhorseConfig, BackoffSettings };
+export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, Workhorse, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskRunner, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, BackoffSettings };
+export type { createDatabaseFunc, createTaskQueueFunc, createTaskRunnerFunc, createTaskExecutorFunc, createExecutorPoolFunc };
 export { TaskState, DuplicateStrategy, assertTaskRow, assertNonPrimitive };

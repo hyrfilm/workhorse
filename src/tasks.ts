@@ -38,7 +38,7 @@ const jsonRequestTask = async (taskId: string, payload: Payload): Promise<void> 
         throw new Error(`[${taskId}]: response status: ${statusCode}`); 
     }
     const jsonResponse = await response.json() as object;
-    //console.info(`[${taskId}]: ${statusCode} ${JSON.stringify(jsonResponse)}`);
+    console.info(`[${taskId}]: ${statusCode} ${JSON.stringify(jsonResponse)}`);
 }
 
 const appendHTMLTask = async (taskId: string, payload: Payload): Promise<void> => {

@@ -3,17 +3,22 @@ import {beforeEach, describe, expect, test} from 'vitest';
 import {createDatabaseStub} from './createDatabaseStub';
 import {Payload, RunTask, TaskQueue, TaskState} from '@/types';
 import {ReservationFailed} from "@/errors.ts";
-import { config } from '@/config';
 import { createTaskQueue } from '@/db/TaskQueue';
+import {getDefaultConfig} from "@/config.ts";
+import {WorkhorseConfig} from "@/types.ts";
 
 declare module 'vitest' {
     export interface TestContext {
         taskQueue: TaskQueue;
+        config: WorkhorseConfig,
     }
   }
 
 describe('TaskRunner', () => {
     beforeEach(async (context) => {
+        const config = getDefaultConfig();
+        context.config = config;
+
         config.factories.createDatabase = createDatabaseStub;
         config.factories.createTaskQueue = createTaskQueue;
 
@@ -25,7 +30,7 @@ describe('TaskRunner', () => {
         await context.taskQueue.addTask('task3', {'car': '?'});
     });
 
-    test('reserve & run', async ({ taskQueue }) => {
+    test('reserve & run', async ({ config, taskQueue }) => {
         const actualTasks: any[] = [];
         const runStub: RunTask = async (taskId: string, payload: Payload) => {
             actualTasks.push({taskId, payload});
@@ -49,7 +54,7 @@ describe('TaskRunner', () => {
         ]);
     });
 
-    test('reserve & run - success / failure', async ({ taskQueue }) => {
+    test('reserve & run - success / failure', async ({ config, taskQueue }) => {
         const runStub: RunTask = async (_taskId: string, _payload: Payload) => {
         }
 
@@ -78,7 +83,7 @@ describe('TaskRunner', () => {
         expect(failed).toBe(1);
     });
 
-    test('no reservation', async ({taskQueue}) => {
+    test('no reservation', async ({ config, taskQueue}) => {
         const taskRunner = createTaskRunner(config, taskQueue, (_p1, _p2) => Promise.resolve());
         await taskRunner.reserveHook();
         await taskRunner.reserveHook();

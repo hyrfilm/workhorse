@@ -8,19 +8,23 @@ async function createDatabaseStub(): Promise<(query: string) => Promise<QueryRes
     db.exec(schema);
 
     async function runQuery(query: string): Promise<QueryResult[]> {
-        const stmt = db.prepare(query);
-        stmt.run();
-        let result: unknown = [];
-        if (query.toLowerCase().includes("select")) {
-            result = stmt.get();
-            if (!Array.isArray(result)) {
-                result = [result] as QueryResult[];
+        try {
+            const row = db.prepare(query).get();
+            if (row==undefined) {
+                return [];
+            } else {
+                return await Promise.resolve([row] as QueryResult[]);
+            }
+        } catch(e) {
+            if (e instanceof TypeError) {
+                db.prepare(query).run();;
+                return await Promise.resolve([]);
+                throw e;
             }
         }
-        return await Promise.resolve(result as QueryResult[]);
+        return await Promise.reject();
     }
-
-    return Promise.resolve(runQuery);
+    return runQuery;
 }
 
 export { createDatabaseStub };

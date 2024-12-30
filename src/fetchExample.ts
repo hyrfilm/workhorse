@@ -19,7 +19,7 @@ export async function fetchExample() : Promise<void> {
 
     log.info(`Creating ${numTasks} tasks...`);
 
-    for (let i=0;i<1000;i++) {
+    for (let i=0;i<numTasks;i++) {
         const url = `https://jsonplaceholder.typicode.com/posts`;
         const body = { title: `title ${i}`, body: `body ${i}`, userId: i};
         const method = 'POST';
@@ -36,13 +36,16 @@ export async function fetchExample() : Promise<void> {
     async function poller() {
         await workhorse.poll();
         const status = await workhorse.getStatus();
-        log.info(JSON.stringify(status));
+        const el = document.getElementById("status") as Element;
+        el.innerHTML = JSON.stringify(status);
         if (status.queued>0 || status.executing>0) {
             setTimeout(poller, seconds(0.25));
         } else {
             log.info("Stopping workhorse...");
             await workhorse.stop();
-            log.info("Done.")
+            log.info("Shutting down...");
+            await workhorse.shutdown();
+            log.info("Done.");
         }
     }
 }

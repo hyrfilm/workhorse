@@ -11,8 +11,6 @@ import {
 } from '@/types';
 import {
     addTaskQuery,
-    reserveTaskQuery,
-    updateTaskStatusQuery,
     taskSuccessQuery,
     taskFailureQuery,
     getSingleStatusQuery,
@@ -22,9 +20,7 @@ import {
     reserveTaskAtomic as reserveTaskAtomicQuery,
 } from './sql';
 import {DuplicateTaskError} from "@/errors.ts";
-import { Q } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
 
-let successful = 0;
 function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
     const taskQueue = {
         addTask: async (taskId: string, payload: Payload) => {

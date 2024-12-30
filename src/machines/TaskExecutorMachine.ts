@@ -116,20 +116,20 @@ export function createTaskExecutor(config: WorkhorseConfig, taskRunner: TaskRunn
     const actor = createActor(machine);
     actor.start();
 
-    const taskExecutor : SingleTaskExecutor = {
+    const taskExecutor = {
       start: () => {
         actor.send({ type: 'start' });
       },
       stop: () => {
-        actor.stop();
+        actor.send({ type: 'stop' });
       },
       poll: () => {
         actor.send({ type: 'poll'});
       },
-      waitFor: async (tag) => {
+      waitFor: async (tag : Tag) => {
         await waitFor(actor, (state) => state.hasTag(tag));
       },
-      waitIf: async (tag) => {
+      waitIf: async (tag : Tag) => {
         await waitFor(actor, (state) => !state.hasTag(tag));
       },
       getStatus: (): Status => {

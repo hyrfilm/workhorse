@@ -1,12 +1,12 @@
 import {createTaskRunner} from '@/TaskRunner';
 import {beforeEach, describe, expect, test} from 'vitest';
 import {DuplicateStrategy, Payload, SingleTaskExecutor, TaskQueue, WorkhorseConfig} from '@/types';
-import {config} from '@/config';
 import {createTaskQueue} from '@/db/TaskQueue';
 import {createDatabaseStub} from 'test/db/createDatabaseStub';
 import {createTaskExecutor} from '@/machines/TaskExecutorMachine';
 import { DuplicateTaskError } from '@/errors';
 import {TaskRunner} from "@/types.ts";
+import {getDefaultConfig} from "@/config.ts";
 
 declare module 'vitest' {
     export interface TestContext {
@@ -23,13 +23,12 @@ declare module 'vitest' {
 
 describe('TaskExecutor', () => {
     beforeEach(async (context) => {
-        const cfg = structuredClone(config);
-        cfg.factories = {
-            createDatabase: createDatabaseStub,
-            createTaskQueue: createTaskQueue,
-            createTaskRunner: createTaskRunner,
-            createTaskExecutor: createTaskExecutor,
-        };
+        const cfg = structuredClone(getDefaultConfig());
+        cfg.factories.createDatabase = createDatabaseStub;
+        cfg.factories.createTaskQueue = createTaskQueue;
+        cfg.factories.createTaskRunner = createTaskRunner;
+        cfg.factories.createTaskExecutor = createTaskExecutor;
+
         // We could use XState's simulated clocks instead, but here we just set
         // the backoff to not wait at all so that we don't need to wait for failing tasks
         cfg.backoff.initial = 0;
