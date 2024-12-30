@@ -6,6 +6,7 @@ import { createTaskRunner } from "./TaskRunner";
 import { DefaultWorkhorseConfig, Payload, QueueStatus, RunTask } from "./types";
 
 interface Workhorse {
+    addTaskSync: (taskId: string, payload: Payload) => void;
     addTask: (taskId: string, payload: Payload) => Promise<void>;
     getStatus: () => Promise<QueueStatus>;
     poll: () => Promise<void>;
@@ -34,6 +35,11 @@ const createWorkhorse = async (run: RunTask) : Promise<Workhorse> => {
     //taskExecutor.subscribe((snapshot) => log.info(snapshot.value));
 
     const workhorse = {
+        addTaskSync: (identity: string, payload: Payload) => {
+            workhorse.addTask(identity, payload)
+                .then(() => {})
+                .catch((e) => { throw new Error(e)});
+        },
         addTask: async (identity: string, payload: Payload) => {
             await taskQueue.addTask(identity, payload);
         },

@@ -16,7 +16,7 @@ for(let i=1;i<=numTasks;i++) {
     const el = document.getElementById("status") as Element;
     el.innerHTML = JSON.stringify(status);
 
-    workhorse.addTask(`task-1-${i}`, { parentId: 'tasks', tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
+    workhorse.addTaskSync(`task-1-${i}`, { parentId: 'tasks', tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
     if (numTasks>100) {
         workhorse.poll();
     }

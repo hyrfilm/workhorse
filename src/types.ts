@@ -81,6 +81,17 @@ type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskRunner) 
 interface WorkhorseConfig {
     backoff: BackoffSettings;
     duplicates: DuplicateStrategy;
+    concurrency: number,
+    polling: {
+        auto: boolean,
+        interval: number,
+        waitWhen: 'busy' | 'executing'
+    },
+    taks: {
+        include: {
+            highPrecisionTimer: boolean
+        },
+    },
     factories: {
         createDatabase: createDatabaseFunc | undefined;
         createTaskQueue: createTaskQueueFunc | undefined;
