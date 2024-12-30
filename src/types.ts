@@ -13,7 +13,7 @@ enum TaskState {
 type RowId = number;
 
 interface TaskRow {
-    rowId: RowId;
+    id: RowId;
     taskId: string;
     payload: Payload;
 }
@@ -105,18 +105,18 @@ interface QueueStatus {
     failed: number;
 }
 
-function assertTaskRow(maybeTaskRow: TaskRow | undefined): asserts maybeTaskRow is TaskRow {
-    if (maybeTaskRow===undefined) {
+function assertTaskRow(maybeTaskRow: object | Record<string, string | number> | undefined): asserts maybeTaskRow is TaskRow {
+    if (maybeTaskRow==undefined) {
         throw new Error('Invalid TaskRow (missing)');
     }
-    if (typeof maybeTaskRow.rowId!=="number") {
-        throw new Error(`Invalid rowId: ${maybeTaskRow.rowId}`);
+    if ("id" in maybeTaskRow && typeof maybeTaskRow.id!=="number") {
+        throw new Error(`Invalid row - id: ${maybeTaskRow.id}`);
     }
-    if (typeof maybeTaskRow.taskId!=="string") {
-        throw new Error(`Invalid taskId: ${maybeTaskRow.taskId}`);
+    if ("taskId" in maybeTaskRow && typeof maybeTaskRow.taskId!=="string") {
+        throw new Error(`Invalid row - taskId: ${maybeTaskRow.taskId}`);
     }
-    if (typeof maybeTaskRow.payload!=="object") {
-        throw new Error(`Invalid payload: ${maybeTaskRow.payload}`);
+    if ("payload" in maybeTaskRow && typeof maybeTaskRow.payload!=="object") {
+        throw new Error(`Invalid row - payload: ${maybeTaskRow.payload}`);
     }
 }
 

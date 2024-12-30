@@ -1,4 +1,14 @@
-import { Payload, QueueStatus, TaskQueue, TaskRow, TaskState, DuplicateStrategy, WorkhorseConfig, RunQuery } from '@/types';
+import {
+    Payload,
+    QueueStatus,
+    TaskQueue,
+    TaskRow,
+    TaskState,
+    DuplicateStrategy,
+    WorkhorseConfig,
+    RunQuery,
+    assertTaskRow
+} from '@/types';
 import {
     addTaskQuery,
     reserveTaskQuery,
@@ -45,17 +55,18 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
                 return undefined;
             }
             const dbRow = maybeTaskRow[0];
+            assertTaskRow(dbRow);
 
             const updateQuery = updateTaskStatusQuery(dbRow.id, TaskState.executing);
             await sql(updateQuery);
             return toTaskRow(dbRow);
         },
         taskSuccessful: async (taskRow: TaskRow) => {
-            const query = taskSuccessQuery(taskRow.rowId);
+            const query = taskSuccessQuery(taskRow.id);
             await sql(query);
         },
         taskFailed: async (taskRow: TaskRow) => {
-            const query = taskFailureQuery(taskRow.rowId);
+            const query = taskFailureQuery(taskRow.id);
             await sql(query);
         },
         requeue: async (): Promise<undefined> => {
@@ -65,7 +76,14 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
         queryTaskCount: async (status: TaskState): Promise<number> => {
             const query = getSingleStatusQuery(status);
             const records = await sql(query);
-            return records[0]['COUNT(*)'] as number;
+            const record = records[0];
+            const key = 'COUNT(*)';
+            if (key in record && record[key]!=="number") {
+                return record[key] as number;
+            } else {
+                const shouldNotHappen : never = 'Should not happen' as never;
+                throw new Error(shouldNotHappen);
+            }
         },
         getStatus: async (): Promise<QueueStatus> => {
             const queued = await taskQueue.queryTaskCount(TaskState.queued);

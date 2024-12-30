@@ -44,7 +44,7 @@ function toTaskRow(dbRow: unknown): TaskRow {
     }
     const dbTask = dbRow as Record<string, any>;
     if ("id" in dbTask && "task_id" in dbTask && "task_payload" in dbTask) {
-        return { rowId: dbTask.id, taskId: dbTask.task_id, payload: JSON.parse(dbTask.task_payload) };
+        return { id: dbTask.id, taskId: dbTask.task_id, payload: JSON.parse(dbTask.task_payload) };
     } else {
         throw new Error(`Unexpected task row from db: ${dbTask}`);
     }
