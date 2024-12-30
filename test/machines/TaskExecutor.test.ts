@@ -23,7 +23,8 @@ declare module 'vitest' {
 
 describe('TaskExecutor', () => {
     beforeEach(async (context) => {
-        config.factories = {
+        const cfg = structuredClone(config);
+        cfg.factories = {
             createDatabase: createDatabaseStub,
             createTaskQueue: createTaskQueue,
             createTaskRunner: createTaskRunner,
@@ -31,11 +32,11 @@ describe('TaskExecutor', () => {
         };
         // We could use XState's simulated clocks instead, but here we just set
         // the backoff to not wait at all so that we don't need to wait for failing tasks
-        config.backoff.initial = 0;
-        config.backoff.maxTime = 0;
-        config.backoff.multiplier = 0;
-        config.duplicates = DuplicateStrategy.IGNORE;
-        context.config = config;
+        cfg.backoff.initial = 0;
+        cfg.backoff.maxTime = 0;
+        cfg.backoff.multiplier = 0;
+        cfg.duplicates = DuplicateStrategy.IGNORE;
+        context.config = cfg;
         context.executedTasks = [];
         // task ids placed here will fail
         context.failIds = new Set();
@@ -53,9 +54,9 @@ describe('TaskExecutor', () => {
         }
 
         const runQuery = await createDatabaseStub();
-        context.taskQueue = createTaskQueue(config, runQuery);
-        context.taskRunner = createTaskRunner(config, context.taskQueue, runTask);
-        context.taskExecutor = createTaskExecutor(config, context.taskRunner);
+        context.taskQueue = createTaskQueue(cfg, runQuery);
+        context.taskRunner = createTaskRunner(cfg, context.taskQueue, runTask);
+        context.taskExecutor = createTaskExecutor(cfg, context.taskRunner);
         context.taskExecutor.start();
     });
 
@@ -227,7 +228,7 @@ describe('TaskExecutor', () => {
         expect(status).toEqual({ queued: 0, successful: 0, failed: 0, executing: 0 });
     });
 
-    test('halting if failing to update task success', async ({ config, taskQueue, taskRunner }) => {
+    test('halting if failing to update task - successHook', async ({ config, taskQueue, taskRunner }) => {
         taskRunner.successHook = async (): Promise<void> => {
             throw new Error('Oups'); 
         }
@@ -235,9 +236,27 @@ describe('TaskExecutor', () => {
         const taskExecutor = createTaskExecutor(config, taskRunner);
         taskExecutor.start();
 
+        await taskExecutor.waitFor('ready');
         await taskQueue.addTask('task', {});
+        taskExecutor.poll();
+        await taskExecutor.waitFor('stopped');
+        expect(taskExecutor.getStatus()).toBe('critical');
+    });
+
+    test('halting if failing to update task - failureHook', async ({ config, taskQueue, taskRunner }) => {
+        taskRunner.failureHook = async (): Promise<void> => {
+            throw new Error('Oups');
+        }
+        taskRunner.executeHook = async (): Promise<void> => {
+            throw new Error('Oups');
+        }
+
+        const taskExecutor = createTaskExecutor(config, taskRunner);
+        taskExecutor.start();
 
         await taskExecutor.waitFor('ready');
+        await taskQueue.addTask('task', {});
+
         taskExecutor.poll();
         await taskExecutor.waitFor('stopped');
         expect(taskExecutor.getStatus()).toBe('critical');
