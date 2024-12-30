@@ -66,6 +66,23 @@ function addTaskIfNotExistsQuery(taskId: string, payload: Payload) {
     `;
 }
 
+function reserveTaskAtomic() {
+    return `
+      UPDATE task_queue
+      SET
+        status_id = ${TaskState.executing},
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id IN (
+        SELECT id
+        FROM task_queue
+        WHERE status_id = ${TaskState.queued}
+        ORDER BY id ASC
+        LIMIT 1
+      )
+      RETURNING *;
+    `;
+  }
+
 function reserveTaskQuery() {
     return `
         SELECT * FROM task_queue
@@ -118,4 +135,4 @@ function getSingleStatusQuery(status: number) {
     `;
 }
 
-export { schema, addTaskQuery, addTaskIfNotExistsQuery, reserveTaskQuery, updateTaskStatusQuery, taskSuccessQuery, taskFailureQuery, requeueFailuresQuery, getSingleStatusQuery, toTaskRow };
+export { schema, addTaskQuery, addTaskIfNotExistsQuery, reserveTaskQuery, reserveTaskAtomic, updateTaskStatusQuery, taskSuccessQuery, taskFailureQuery, requeueFailuresQuery, getSingleStatusQuery, toTaskRow };

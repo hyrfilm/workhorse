@@ -19,6 +19,7 @@ import {
     toTaskRow,
     requeueFailuresQuery,
     addTaskIfNotExistsQuery,
+    reserveTaskAtomic as reserveTaskAtomicQuery,
 } from './sql';
 import {DuplicateTaskError} from "@/errors.ts";
 import { Q } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
@@ -51,18 +52,17 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
             }
         },
         reserveTask: async () => {
-            const reserveQuery = reserveTaskQuery();
-            const maybeTaskRow = await sql(reserveQuery);
-            if (maybeTaskRow.length !== 1 || maybeTaskRow[0]==null) {
-                return undefined;
-            }
-            const dbRow = maybeTaskRow[0];
-            assertTaskRow(dbRow);
+            const reserveQuery = reserveTaskAtomicQuery();
+            const updatedRows = await sql(reserveQuery);
 
-            const updateQuery = updateTaskStatusQuery(dbRow.id, TaskState.executing);
-            await sql(updateQuery);
+            if (updatedRows.length !== 1) {
+              return undefined;
+            }
+          
+            const dbRow = updatedRows[0];
+            assertTaskRow(dbRow);  // your domain logic check
             return toTaskRow(dbRow);
-        },
+          },
         taskSuccessful: async (taskRow: TaskRow) => {
             const query = taskSuccessQuery(taskRow.id);
             await sql(query);

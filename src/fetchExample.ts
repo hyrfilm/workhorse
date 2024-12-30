@@ -9,18 +9,17 @@ export async function fetchExample() : Promise<void> {
     log.setDefaultLevel(log.levels.INFO);
     
     config.concurrency = 50;
-    config.poll.post
     config.poll.auto = true;
 
     log.info("Creating workhorse instance...");
 
-    const numTasks = 100;
+    const numTasks = 1000;
 
     const workhorse = await createWorkhorse(tasks.jsonRequestTask);
 
     log.info(`Creating ${numTasks} tasks...`);
 
-    for (let i=0;i<numTasks;i++) {
+    for (let i=0;i<1000;i++) {
         const url = `https://jsonplaceholder.typicode.com/posts`;
         const body = { title: `title ${i}`, body: `body ${i}`, userId: i};
         const method = 'POST';
@@ -41,7 +40,6 @@ export async function fetchExample() : Promise<void> {
         if (status.queued>0 || status.executing>0) {
             setTimeout(poller, seconds(0.25));
         } else {
-            alert("Done");
             log.info("Stopping workhorse...");
             await workhorse.stop();
             log.info("Done.")
