@@ -4,8 +4,7 @@ type QueryResult = Record<string, string | number | null>[];
 type RunQuery = (query: string) => Promise<QueryResult[]>;
 
 interface Workhorse {
-    addTaskSync: (taskId: string, payload: Payload) => void;
-    addTask: (taskId: string, payload: Payload) => Promise<void>;
+    addTask: (taskId: string, payload: Payload) => void;
     getStatus: () => Promise<QueueStatus>;
     poll: () => Promise<void>;
     start: () => Promise<void>;
@@ -89,6 +88,16 @@ enum DuplicateStrategy {
     FORBID = 'forbid',
 }
 
+enum TaskOrderingStrategy {
+    // Tasks are almost always delivered in the order they are added to the queue.
+    BEST_EFFORT = 'best effort',
+
+    // Tasks are always delivered in the order they are added.
+    // Note that this has performance implications if adding many tasks in quick succession.
+    // Also note that if this is important, failing tasks are retried before queued tasks.
+    GUARANTEED = 'guaranteed ordering'
+}
+
 interface TaskRunner {
     executeHook: () => Promise<void>;
     successHook: () => Promise<void>;
@@ -160,4 +169,4 @@ function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
 
 export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, Workhorse, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskRunner, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, BackoffSettings };
 export type { createDatabaseFunc, createTaskQueueFunc, createTaskRunnerFunc, createTaskExecutorFunc, createExecutorPoolFunc };
-export { TaskState, DuplicateStrategy, assertTaskRow, assertNonPrimitive };
+export { TaskState, DuplicateStrategy, TaskOrderingStrategy, assertTaskRow, assertNonPrimitive };

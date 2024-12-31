@@ -25,7 +25,7 @@ export async function fetchExample() : Promise<void> {
         const method = 'POST';
 
         const taskId = `task-${i}`
-        workhorse.addTaskSync(taskId, { url, method, body });
+        workhorse.addTask(taskId, { url, method, body });
         log.info(`Task added: ${taskId}`);
     }
 

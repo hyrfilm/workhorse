@@ -29,14 +29,18 @@ const createWorkhorse = async (run: RunTask) : Promise<Workhorse> => {
     //TODO: Add some good way to inspect / diagnose stuff
     //taskExecutor.subscribe((snapshot) => log.info(snapshot.value));
 
+    async function addTaskAsync (identity: string, payload: Payload) {
+        await taskQueue.addTask(identity, payload);
+    }
+
+
+    //TODO: To support guaranteed ordering adding tasks should be done via a state machine
+    //TODO: And instead of just throwing an error when we fail to add a task we model it as state in that machine
     let workhorse = {
-        addTaskSync: (identity: string, payload: Payload) => {
-            workhorse.addTask(identity, payload)
+        addTask: (identity: string, payload: Payload) => {
+            addTaskAsync(identity, payload)
                 .then(() => {})
                 .catch((e) => { throw new Error(e)});
-        },
-        addTask: async (identity: string, payload: Payload) => {
-            await taskQueue.addTask(identity, payload);
         },
         getStatus: async() => {
             return await taskQueue.getStatus();

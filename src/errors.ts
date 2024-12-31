@@ -1,15 +1,12 @@
-import { Payload, QueueStatus } from "@/types.ts";
+import {Payload, QueueStatus, Workhorse} from "@/types.ts";
 
 class ReservationFailed extends Error {}
 class DuplicateTaskError extends Error {}
 
 
 const SHUTDOWN_ERROR_MSG = "This Workhorse instance has been shut down and is no longer available.";
-const deadHorse = {
-    addTaskSync: function (_taskId: string, _payload: Payload): void {
-        throw new Error(SHUTDOWN_ERROR_MSG);
-    },
-    addTask: function (_taskId: string, _payload: Payload): Promise<void> {
+const deadHorse: Workhorse = {
+    addTask: function (_taskId: string, _payload: Payload): void {
         throw new Error(SHUTDOWN_ERROR_MSG);
     },
     getStatus: function (): Promise<QueueStatus> {
