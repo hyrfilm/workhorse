@@ -13,11 +13,10 @@ INSERT INTO task_status (id, name, is_terminal) VALUES
     (${TaskState.successful}, 'successful', 1), -- task has been completed successfully
     (${TaskState.failed}, 'failed', 0);         -- task has failed and can be retried
 
--- CREATE TABLE task queue
 CREATE TABLE task_queue (
--- Unique identifier for each task
+-- Datbase row id
 id INTEGER PRIMARY KEY AUTOINCREMENT,
--- UUID for the task (ensures uniqueness)                     
+-- User specified string that uniquely identifies a task                   
 task_id VARCHAR(36) UNIQUE NOT NULL,
 -- The JSON payload of the task                     
 task_payload TEXT NOT NULL,
