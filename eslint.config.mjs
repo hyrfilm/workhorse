@@ -21,7 +21,18 @@ export default tseslint.config(
       '@typescript-eslint/restrict-template-expressions': 0,
       '@typescript-eslint/consistent-type-definitions': 0,
       '@typescript-eslint/consistent-indexed-object-style': 0,
-      '@typescript-eslint': ["error", { "argsIgnorePattern": "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "args": "all",
+        "argsIgnorePattern": "^_",
+        "caughtErrors": "all",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ]
     }
   }
 );

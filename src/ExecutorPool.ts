@@ -43,24 +43,8 @@ const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: 
         pollAll: async () => {
             for (const executor of executors) {
                 const preWait = config.poll.pre.wait;
-                const postWait = config.poll.post.wait;
-
                 await executor.waitFor(preWait);
                 executor.poll();
-                if (postWait === 'none') {
-                    continue;
-                } else if (postWait === 'busy') {
-                    await executor.waitIf('busy');
-                    //await executor.waitIf(postWait);
-                } else if (postWait === 'executing') {
-                    await executor.waitIf('busy');
-                    await executor.waitIf('executing');
-                } else if (postWait === 'ready') {
-                    await executor.waitFor('ready');
-                } else {
-                    const message: never = `Unknown postWait: ${postWait}` as never;
-                    throw Error(message);
-                }
             }
         },
     }

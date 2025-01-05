@@ -8,39 +8,38 @@ import {createDatabase} from "@/db/createDatabase.ts";
 import {createTaskRunner} from "@/TaskRunner.ts";
 import {createTaskExecutor} from "@/machines/TaskExecutorMachine.ts";
 
-log.setDefaultLevel(log.levels.INFO);
+export async function marqueeExample() {
+    log.setDefaultLevel(log.levels.INFO);
 
-const numTasks = 10000;
+    const numTasks = 10000;
 
-const workhorse = await createWorkhorse(appendHTMLTask);
+    const workhorse = await createWorkhorse(appendHTMLTask);
 
-log.info("Adding tasks...");
+    log.info("Adding tasks...");
 
-config.factories.createDatabase = createDatabase;
-config.factories.createTaskQueue = createTaskQueue;
-config.factories.createTaskRunner = createTaskRunner;
-config.factories.createTaskExecutor = createTaskExecutor;
+    config.factories.createDatabase = createDatabase;
+    config.factories.createTaskQueue = createTaskQueue;
+    config.factories.createTaskRunner = createTaskRunner;
+    config.factories.createTaskExecutor = createTaskExecutor;
 
-for(let i=1;i<=numTasks;i++) {
-    const status = await workhorse.getStatus();
-    const el = document.getElementById("status") as Element;
-    el.innerHTML = JSON.stringify(status);
+    for(let i=1;i<=numTasks;i++) {
+        const status = await workhorse.getStatus();
+        const el = document.getElementById("status") as Element;
+        el.innerHTML = JSON.stringify(status);
 
-    workhorse.addTask(`task-1-${i}`, { parentId: 'tasks', tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
-    if (numTasks>100) {
-        workhorse.poll();
+        await workhorse.addTask(`task-1-${i}`, { parentId: 'tasks', tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
     }
-}
 
-let done = false;
+    let done = false;
 
-while(!done) {
-    await workhorse.poll();
-    const status = await workhorse.getStatus();
-    const el = document.getElementById("status") as Element;
-    el.innerHTML = JSON.stringify(status);
-    log.info(status);
-    if (!status.queued) {
-        done = true;
+    while(!done) {
+        await workhorse.poll();
+        const status = await workhorse.getStatus();
+        const el = document.getElementById("status") as Element;
+        el.innerHTML = JSON.stringify(status);
+        log.info(status);
+        if (!status.queued) {
+            done = true;
+        }
     }
 }

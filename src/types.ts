@@ -4,7 +4,7 @@ type QueryResult = Record<string, string | number | null>[];
 type RunQuery = (query: string) => Promise<QueryResult[]>;
 
 interface Workhorse {
-    addTask: (taskId: string, payload: Payload) => void;
+    addTask: (taskId: string, payload: Payload) => Promise<void>;
     getStatus: () => Promise<QueueStatus>;
     poll: () => Promise<void>;
     start: () => Promise<void>;
@@ -20,13 +20,9 @@ interface WorkhorseConfig {
         auto: boolean,
         interval: number,
         pre: {
-            wait: 'ready'
+            wait: 'ready',
             timeout?: number,
         },
-        post: {
-            wait: 'none' | 'busy' | 'executing' | 'ready'
-            timeout?: number,
-        }
     },
     taks: {
         include: {

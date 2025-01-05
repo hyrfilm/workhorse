@@ -4,12 +4,14 @@ import * as tasks from "@/tasks.ts";
 import { config } from "./config";
 import { seconds } from "./util/time";
 
-export async function fetchExample() : Promise<void> {
+export async function fetchExample() {
  
     log.setDefaultLevel(log.levels.INFO);
     
     config.concurrency = 50;
     config.poll.auto = true;
+
+    config.backoff.maxTime = seconds(5);
 
     log.info("Creating workhorse instance...");
 
@@ -25,7 +27,7 @@ export async function fetchExample() : Promise<void> {
         const method = 'POST';
 
         const taskId = `task-${i}`
-        workhorse.addTask(taskId, { url, method, body });
+        await workhorse.addTask(taskId, { url, method, body });
         log.info(`Task added: ${taskId}`);
     }
 

@@ -6,7 +6,7 @@ class DuplicateTaskError extends Error {}
 
 const SHUTDOWN_ERROR_MSG = "This Workhorse instance has been shut down and is no longer available.";
 const deadHorse: Workhorse = {
-    addTask: function (_taskId: string, _payload: Payload): void {
+    addTask: function (_taskId: string, _payload: Payload): Promise<void> {
         throw new Error(SHUTDOWN_ERROR_MSG);
     },
     getStatus: function (): Promise<QueueStatus> {
