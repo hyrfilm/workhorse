@@ -4,9 +4,10 @@ type QueryResult = Record<string, string | number | null>[];
 type RunQuery = (query: string) => Promise<QueryResult[]>;
 
 interface Workhorse {
-    addTask: (taskId: string, payload: Payload) => Promise<void>;
+    queue: (taskId: string, payload: Payload) => Promise<void>;
     getStatus: () => Promise<QueueStatus>;
     poll: () => Promise<void>;
+    requeue:() => Promise<void>;
     start: () => Promise<void>;
     stop: () => Promise<void>;
     shutdown: () => Promise<QueueStatus>;

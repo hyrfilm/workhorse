@@ -18,11 +18,12 @@ import {
     requeueFailuresQuery,
     addTaskIfNotExistsQuery,
     reserveTaskAtomic as reserveTaskAtomicQuery,
+    getAllStatusQuery,
 } from './sql';
-import {DuplicateTaskError} from "@/errors.ts";
+import {DuplicateTaskError, UnreachableError} from "@/errors.ts";
 
 function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
-    const taskQueue = {
+    const taskQueue : TaskQueue = {
         addTask: async (taskId: string, payload: Payload) => {
             let query = "";
             switch(config.duplicates) {
@@ -56,7 +57,7 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
             }
           
             const dbRow = updatedRows[0];
-            assertTaskRow(dbRow);  // your domain logic check
+            assertTaskRow(dbRow);
             return toTaskRow(dbRow);
           },
         taskSuccessful: async (taskRow: TaskRow) => {
@@ -84,17 +85,48 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
                 throw new Error(shouldNotHappen);
             }
         },
+        
         getStatus: async (): Promise<QueueStatus> => {
-            const queued = await taskQueue.queryTaskCount(TaskState.queued);
-            const executing = await taskQueue.queryTaskCount(TaskState.executing);
-            const successful = await taskQueue.queryTaskCount(TaskState.successful);
-            const failed = await taskQueue.queryTaskCount(TaskState.failed);
+            const query = getAllStatusQuery();
+            const records = await sql(query);
+            
+            // Start with default counts
+            const queueStatus: QueueStatus = {
+                queued: 0,
+                executing: 0,
+                successful: 0,
+                failed: 0,
+            };
+        
+            // Map records to QueueStatus
+            records.forEach((record) => {
+                if (typeof record.status_id !== "number" || typeof record.count !== "number") {
+                    throw new UnreachableError(record as never, `Invalid record structure: ${JSON.stringify(record)}`);
+                }
 
-            return { queued, executing, successful, failed };
-        }
+                switch (record.status_id) {
+                    case TaskState.queued:
+                        queueStatus.queued = record.count;
+                        break;
+                    case TaskState.executing:
+                        queueStatus.executing = record.count;
+                        break;
+                    case TaskState.successful:
+                        queueStatus.successful = record.count;
+                        break;
+                    case TaskState.failed:
+                        queueStatus.failed = record.count;
+                        break;
+                    default:
+                        throw new UnreachableError(record.status_id as never, `Unexpected status_id: ${record.status_id}`);
+                }
+            });
+        
+        return queueStatus;
+        },
     };
 
     return taskQueue;
-}
+};
 
 export { createTaskQueue };

@@ -27,7 +27,7 @@ export async function fetchExample() {
         const method = 'POST';
 
         const taskId = `task-${i}`
-        await workhorse.addTask(taskId, { url, method, body });
+        await workhorse.queue(taskId, { url, method, body });
         log.info(`Task added: ${taskId}`);
     }
 

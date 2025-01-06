@@ -14,9 +14,6 @@ const config: WorkhorseConfig = {
         //TODO: Call these something else these names are not clear
         pre: {
             wait: 'ready'
-        },
-        post: {
-            wait: 'busy',
         }
     },
     taks: {

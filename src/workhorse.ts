@@ -7,31 +7,31 @@ import {createTaskExecutor} from "@/machines/TaskExecutorMachine.ts";
 import {createTaskQueue} from "@/db/TaskQueue.ts";
 import {createExecutorPool} from "@/ExecutorPool.ts";
 
-const createConfig = (): WorkhorseConfig => {
-    const config = getDefaultConfig();
-    config.factories = {
+const createDefaultConfig = (): WorkhorseConfig => {
+    const defaultConfig = getDefaultConfig();
+    defaultConfig.factories = {
         createDatabase: createDatabase,
         createTaskQueue: createTaskQueue,
         createTaskRunner: createTaskRunner,
         createTaskExecutor: createTaskExecutor,
         createExecutorPool: createExecutorPool,
     };
-    return config;
+    return defaultConfig;
 }
 
-const createWorkhorse = async (run: RunTask) : Promise<Workhorse> => {
-    const config = createConfig();
+const createWorkhorse = async (run: RunTask, config?: Partial<WorkhorseConfig>) : Promise<Workhorse> => {
+    const cfg = { ...createDefaultConfig(), ...config };
 
-    const runQuery = await config.factories.createDatabase(config);
-    const taskQueue = config.factories.createTaskQueue(config, runQuery);
-    const executorPool = config.factories.createExecutorPool(config, taskQueue, run);
+    const runQuery = await cfg.factories.createDatabase(cfg);
+    const taskQueue = cfg.factories.createTaskQueue(cfg, runQuery);
+    const executorPool = cfg.factories.createExecutorPool(cfg, taskQueue, run);
 
     //TODO: Add some good way to inspect / diagnose stuff
     //taskExecutor.subscribe((snapshot) => log.info(snapshot.value));
 
     let workhorse = {
-        addTask: async(taskId:string, payload: Payload) => {
-            return await taskQueue.addTask(taskId, payload);
+        queue: async(taskId:string, payload: Payload) => {
+            await taskQueue.addTask(taskId, payload);
         },
         getStatus: async() => {
             return await taskQueue.getStatus();
@@ -41,6 +41,9 @@ const createWorkhorse = async (run: RunTask) : Promise<Workhorse> => {
         },
         poll: async() => {
             await executorPool.pollAll();
+        },
+        requeue: async() => {
+            await taskQueue.requeue();
         },
         stop: async() => {
             await executorPool.stopAll();

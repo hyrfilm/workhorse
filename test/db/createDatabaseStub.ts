@@ -9,6 +9,12 @@ async function createDatabaseStub(): Promise<(query: string) => Promise<QueryRes
 
     async function runQuery(query: string): Promise<QueryResult[]> {
         try {
+            const rows = db.prepare(query).all();
+            return await Promise.resolve(rows as QueryResult[]);
+        } catch(_e) {
+        }
+
+        try {
             const row = db.prepare(query).get();
             if (row==undefined) {
                 return [];

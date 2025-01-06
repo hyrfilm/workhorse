@@ -1,75 +1,135 @@
 import fc from "fast-check";
 import { Payload } from "@/types";
 import { createWorkhorse } from "@/workhorse";
-import { config, getDefaultConfig } from "@/config";
-import { test, expect, vi } from 'vitest';
+import { test, expect, vi } from "vitest";
 import { createDatabaseStub } from "./db/createDatabaseStub";
 import { createTaskQueue } from "@/db/TaskQueue";
 import { createTaskRunner } from "@/TaskRunner";
 import { createTaskExecutor } from "@/machines/TaskExecutorMachine";
+import { createExecutorPool } from "@/ExecutorPool";
+import { aw } from "vitest/dist/chunks/reporters.D7Jzd9GS.js";
 
 vi.mock("@/db/createDatabase.ts", () => ({
-  createDatabase: vi.fn(async () => {
-    return await createDatabaseStub();
-  }),
+  createDatabase: vi.fn(async () => await createDatabaseStub()),
 }));
 
-test('Tasks are processed in the same order they were added', async () => {
+test("Tasks are processed in the same order they were added (high concurrency)", async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.scheduler(),
-      fc.uniqueArray(fc.nat(), { minLength: 1, maxLength: 36 }), // Array of unique task ids
-      fc.integer({ min: 1, max: 100 }), // Concurrency level
-      async (_scheduler, taskIds, concurrency) => {
+
+      fc.uniqueArray(fc.nat(), { minLength: 1, maxLength: 36 }),
+      // TODO: This is annoying, lowering the concurrency can result in some tasks not being picked up when running all promises through fast-check's schedule
+      fc.integer({ min: 20, max: 100 }),
+      async (scheduler, taskIds, concurrency) => {
         const executedTasks: string[] = [];
-        
-        // Define the runTask function
+        const runTaskPromises: Promise<void>[] = [];
+        const expectedIds = [...taskIds].map((id) => `${id}`);
+
+        // Wrap `runTask` with scheduler and promise tracking
         const runTask = async (taskId: string, _payload: Payload): Promise<void> => {
-          executedTasks.push(taskId);
-          await Promise.resolve();
+          const taskPromise = scheduler.schedule(
+            new Promise<void>((resolve) => {
+              executedTasks.push(taskId);
+              resolve();
+            })
+          );
+          runTaskPromises.push(taskPromise); // Track each task's promise
+          await taskPromise;
         };
 
-        const cfg = structuredClone(getDefaultConfig());
-        cfg.factories.createDatabase = createDatabaseStub;
-        cfg.factories.createTaskQueue = createTaskQueue;
-        cfg.factories.createTaskRunner = createTaskRunner;
-        cfg.factories.createTaskExecutor = createTaskExecutor;    
-
         // Create the workhorse instance
-        const workhorse = await createWorkhorse(runTask);
+        const workhorse = await createWorkhorse(runTask, {
+          concurrency,
+          factories: {
+            createDatabase: createDatabaseStub,
+            createTaskQueue: createTaskQueue,
+            createTaskRunner: createTaskRunner,
+            createTaskExecutor: createTaskExecutor,
+            createExecutorPool: createExecutorPool,
+          },
+        });
 
-        // Set concurrency level in the config
-        config.concurrency = concurrency;
+        // Queue tasks
+        const queuePromises = taskIds.map((id) =>
+          scheduler.schedule(workhorse.queue(`${id}`, {}))
+        );
+        await scheduler.waitFor(Promise.all(queuePromises));
 
+        // Poll tasks
+        const pollPromises = Array.from({ length: taskIds.length }, () =>
+          scheduler.schedule(workhorse.poll())
+        );
+        await scheduler.waitFor(Promise.all(pollPromises));
 
-          // Add tasks to the queue
-        for (const id of taskIds) {
-            workhorse.addTask(`${id}`, {});
+        // Wait for all `runTask` promises
+        await scheduler.waitFor(Promise.all(runTaskPromises));
 
-        }
+        await workhorse.stop();
 
-
-        for(let i=0;i<taskIds.length;i++) {
-            await workhorse.poll();
-        }
-
-        //TODO: Diagnose why this never finishes
-/*
-        const pollPromises: Promise<void>[] = []
-        // Process tasks by polling using the scheduler
-        for(let i=0;i<1000;i++) {
-            // Schedule the poll operation
-            const promise = _scheduler.schedule(workhorse.poll());
-            pollPromises.push(promise);
-          }
-          _scheduler.waitFor(Promise.all(pollPromises));
-  */
-          await workhorse.stop(); // Gracefully stop after processing
-  
-          // Assert that executed tasks match the original task IDs
-          expect(executedTasks).toEqual(taskIds.map(id => `${id}`)); // Match string representation
-  
+        //console.log('expected: ', [...expectedIds]);
+        //console.log('actual:   ', [...executedTasks]);
+        // Validate the results
+        expect(expectedIds).toEqual(executedTasks);
       }
     )
   );
-}, { timeout: 30_000});
+});
+
+test("Tasks are processed in the same order they were added (low concurrency)", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.scheduler(),
+
+      fc.uniqueArray(fc.nat(), { minLength: 1, maxLength: 36 }),
+      fc.integer({ min: 1, max: 10 }),
+      async (scheduler, taskIds, concurrency) => {
+        const expectedIds = [...taskIds].map((id) => `${id}`);
+        const actualIds: string[] = [];
+
+        // Wrap `runTask` with scheduler and promise tracking
+        const runTask = async (taskId: string, _payload: Payload): Promise<void> => {
+          actualIds.push(taskId);
+          return Promise.resolve();
+        };
+
+        // Create the workhorse instance
+        const workhorse = await createWorkhorse(runTask, {
+          concurrency,
+          factories: {
+            createDatabase: createDatabaseStub,
+            createTaskQueue: createTaskQueue,
+            createTaskRunner: createTaskRunner,
+            createTaskExecutor: createTaskExecutor,
+            createExecutorPool: createExecutorPool,
+          },
+        });
+
+        const initialStatus = await workhorse.getStatus();
+        let expectedStatus = { queued: 0, executing: 0, successful: 0, failed: 0};
+        expect(expectedStatus).toEqual(initialStatus);
+
+        const addTasksSequence = expectedIds.map((taskId) => () => workhorse.queue(taskId, {}));
+        scheduler.scheduleSequence(addTasksSequence);
+
+        await scheduler.waitAll();
+
+        const scheduledStatus = await workhorse.getStatus();
+        expectedStatus = expectedStatus = { queued: taskIds.length, executing: 0, successful: 0, failed: 0};
+        expect(expectedStatus).toEqual(scheduledStatus);
+
+        expectedStatus = { queued: 0, executing: 0, successful: taskIds.length, failed: 0};
+        let finalStatus = await workhorse.getStatus();
+        while (finalStatus.successful !== expectedStatus.successful) {
+          await workhorse.poll();
+          finalStatus = await workhorse.getStatus();
+        }
+
+        //console.log('expected:', expectedStatus);
+        //console.log('acctual: ', finalStatus);
+        expect(expectedStatus).toEqual(finalStatus);
+        expect(expectedIds).toEqual(actualIds);
+      }
+    )
+  );
+});

@@ -27,7 +27,7 @@ export async function marqueeExample() {
         const el = document.getElementById("status") as Element;
         el.innerHTML = JSON.stringify(status);
 
-        await workhorse.addTask(`task-1-${i}`, { parentId: 'tasks', tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
+        await workhorse.queue(`task-1-${i}`, { parentId: 'tasks', tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
     }
 
     let done = false;

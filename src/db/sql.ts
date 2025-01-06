@@ -134,4 +134,11 @@ function getSingleStatusQuery(status: number) {
     `;
 }
 
-export { schema, addTaskQuery, addTaskIfNotExistsQuery, reserveTaskQuery, reserveTaskAtomic, updateTaskStatusQuery, taskSuccessQuery, taskFailureQuery, requeueFailuresQuery, getSingleStatusQuery, toTaskRow };
+function getAllStatusQuery() {
+    return `SELECT status_id, COUNT(*) AS count
+            FROM task_queue
+            GROUP BY status_id;
+    `;
+}
+
+export { schema, addTaskQuery, addTaskIfNotExistsQuery, reserveTaskQuery, reserveTaskAtomic, updateTaskStatusQuery, taskSuccessQuery, taskFailureQuery, requeueFailuresQuery, getSingleStatusQuery, getAllStatusQuery, toTaskRow };

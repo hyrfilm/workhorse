@@ -11,11 +11,11 @@ const workhorse = await createWorkhorse(printTask);
 
 log.info("Adding some tasks...");
 
-await workhorse.addTask('task1', { msg: 'dude' });
-await workhorse.addTask('task2', { msg: 'where', delay: seconds(4) });
-await workhorse.addTask('task3', { msg: 'is', delay: seconds(3) });
-await workhorse.addTask('task4', { msg: 'my', delay: seconds(2) });
-await workhorse.addTask('task5', { msg: 'car', delay: seconds(1) });
+await workhorse.queue('task1', { msg: 'dude' });
+await workhorse.queue('task2', { msg: 'where', delay: seconds(4) });
+await workhorse.queue('task3', { msg: 'is', delay: seconds(3) });
+await workhorse.queue('task4', { msg: 'my', delay: seconds(2) });
+await workhorse.queue('task5', { msg: 'car', delay: seconds(1) });
 
 log.info('Done');
 
