@@ -1,6 +1,6 @@
 import log from "loglevel";
 import {createWorkhorse} from "../src/workhorse.ts";
-import * as tasks from "../src/tasks.ts";
+import * as tasks from "./tasks.ts";
 import { config } from "../src/config";
 import { seconds } from "../src/util/time";
 

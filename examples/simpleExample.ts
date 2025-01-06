@@ -1,5 +1,5 @@
 import { createWorkhorse } from '../src/workhorse';
-import { printTask } from '../src/tasks';
+import { printTask } from './tasks';
 import log from "loglevel"
 import { seconds } from '../src/util/time';
 

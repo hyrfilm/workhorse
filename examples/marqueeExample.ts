@@ -1,6 +1,6 @@
 import { createWorkhorse } from '../src/workhorse';
 import log from "loglevel"
-import {appendHTMLTask} from "../src/tasks";
+import {appendHTMLTask} from "./tasks";
 import {seconds} from "../src/util/time.ts";
 import {config} from "../src/config.ts";
 import {createTaskQueue} from "../src/queue/TaskQueue.ts";
