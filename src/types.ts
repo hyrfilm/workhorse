@@ -3,9 +3,13 @@ type SqlExecutor = (queryTemplate: TemplateStringsArray | string, ...params: unk
 type QueryResult = Record<string, string | number | null>[];
 type RunQuery = (query: string) => Promise<QueryResult[]>;
 
+export type StateChange = 'status';
+
 interface Workhorse {
     queue: (taskId: string, payload: Payload) => Promise<void>;
     getStatus: () => Promise<QueueStatus>;
+    startPoller: (opts?: PollOptions) => Promise<void>;
+    stopPoller: () => Promise<void>;
     poll: () => Promise<void>;
     requeue:() => Promise<void>;
     start: () => Promise<void>;
@@ -17,7 +21,7 @@ interface WorkhorseConfig {
     backoff: BackoffSettings;
     duplicates: DuplicateStrategy;
     concurrency: number,
-    pollStrategy: PollStrategy,
+    taskExecution: TaskExecutorStrategy,
 
     poll: {
         auto: boolean,
@@ -98,10 +102,23 @@ enum TaskOrderingStrategy {
     GUARANTEED = 'guaranteed ordering'
 }
 
-enum PollStrategy {
-    SERIAL      = 'serial',
-    PARALLEL    = 'parallel',
-    NO_WAIT     = 'no wait',
+enum TaskExecutorStrategy {
+    // loops over each executor, waits until its ready - and then performs a poll.
+    SERIAL          = 'serial',
+    // like 'serial', but stores each wait-promise - and performs a Promise.all()
+    PARALLEL        = 'parallel',
+    // does not wait, sends a poll message to executor and immediately returns
+    DETACHED        = 'detached',
+}
+
+enum RequeueStrategy {
+    IMMEDIATE = 'immedidate',
+    DEFERRED = 'deferred',
+}
+
+interface PollOptions {
+    pollInterval?: number,
+    requeuing?: RequeueStrategy;
 }
 
 // Holds TaskExecutors, determined by config.concurrency
@@ -173,6 +190,6 @@ function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
 }
 
 
-export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, Workhorse, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskHooks, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, BackoffSettings };
+export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, Workhorse, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskHooks, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, BackoffSettings, PollOptions };
 export type { createDatabaseFunc, createTaskQueueFunc, createTaskRunnerFunc, createTaskExecutorFunc, createExecutorPoolFunc };
-export { TaskState, DuplicateStrategy, TaskOrderingStrategy, PollStrategy, assertTaskRow, assertNonPrimitive };
+export { TaskState, DuplicateStrategy, TaskOrderingStrategy, TaskExecutorStrategy, RequeueStrategy, assertTaskRow, assertNonPrimitive };

@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import {Payload, PollStrategy, RunTask, WorkhorseConfig} from "@/types";
+import {Payload, TaskExecutorStrategy, RunTask, WorkhorseConfig} from "@/types";
 import {createWorkhorse} from "@/workhorse";
 import {expect, test, vi} from "vitest";
 import {createDatabaseStub} from "./db/createDatabaseStub";
@@ -146,7 +146,7 @@ test("Fuzzing - start/stop", async () => {
                     return Promise.resolve();
                 };
 
-                const workhorse = await createWorkhorseFixture(runTask, { concurrency, pollStrategy: PollStrategy.PARALLEL });
+                const workhorse = await createWorkhorseFixture(runTask, { concurrency, taskExecution: TaskExecutorStrategy.PARALLEL });
 
                 // Queue tasks
                 for (const taskId of taskIds) {
@@ -237,7 +237,7 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
                 const totalTasks = taskIds.map((id) => `${id}`);
                 const runTask = createTaskFunction(probabilityStream);
 
-                const workhorse = await createWorkhorseFixture(runTask, { concurrency, pollStrategy: PollStrategy.NO_WAIT });
+                const workhorse = await createWorkhorseFixture(runTask, { concurrency, taskExecution: TaskExecutorStrategy.DETACHED });
 
                 // Queue tasks
                 const queuePromises = taskIds.map((id) =>

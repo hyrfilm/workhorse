@@ -1,12 +1,21 @@
 import {getDefaultConfig} from "./config";
-import {Payload, QueueStatus, RunTask, Workhorse, WorkhorseConfig} from "./types";
+import {
+    Payload,
+    PollOptions,
+    QueueStatus,
+    RequeueStrategy,
+    RunTask,
+    Workhorse,
+    WorkhorseConfig
+} from "./types";
 import {createDatabase} from "@/queue/db/createDatabase";
 import {createTaskQueue} from "@/queue/TaskQueue";
 import {createTaskHooks} from "@/executor/TaskHooks";
 import {createTaskExecutor} from "@/executor/TaskExecutor";
 import {createExecutorPool} from "@/executor/TaskExecutorPool";
-import {WorkhorseShutdownError} from "@/errors";
+import {UnreachableError, WorkhorseShutdownError} from "@/errors";
 import log from "loglevel";
+import {seconds} from "@/util/time.ts";
 
 log.setDefaultLevel(log.levels.INFO);
 
@@ -23,14 +32,18 @@ const createDefaultConfig = (): WorkhorseConfig => {
 }
 
 const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>): Promise<Workhorse> => {
+    import('@/xstate/inspect')
+
     const config = { ...createDefaultConfig(), ...options };
 
     const runQuery = await config.factories.createDatabase(config);
     const taskQueue = config.factories.createTaskQueue(config, runQuery);
     const executorPool = config.factories.createExecutorPool(config, taskQueue, run);
 
+    // TODO: This object should probably be a state machine
     // Internal status field to track lifecycle
     let status: 'active' | 'shutdown' = 'active';
+    let isPolling: boolean = false;
 
     const ensureActive = () => {
         if (status === 'shutdown') {
@@ -45,11 +58,40 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
         },
         getStatus: async () => {
             ensureActive();
+            //workhorseStatus.update(await taskQueue.getStatus())
             return await taskQueue.getStatus();
         },
+        startPoller: async () => {
+            ensureActive();
+            if (isPolling) {
+                return;
+            } else {
+                isPolling = true;
+            }
+
+            await workhorse.start();
+            await pollAndRequeue();
+        },
+        stopPoller: async () => {
+            ensureActive();
+            if (!isPolling) {
+                return;
+            } else {
+                isPolling = false;
+            }
+
+            await workhorse.stop();
+
+        },
+        //TODO: Rename to 'resume' or 'enable'
         start: async () => {
             ensureActive();
             await executorPool.startAll();
+        },
+        //TODO: Rename to 'pause' or 'disable'
+        stop: async () => {
+            ensureActive();
+            await executorPool.stopAll();
         },
         poll: async () => {
             ensureActive();
@@ -58,10 +100,6 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
         requeue: async () => {
             ensureActive();
             await taskQueue.requeue();
-        },
-        stop: async () => {
-            ensureActive();
-            await executorPool.stopAll();
         },
         shutdown: async (): Promise<QueueStatus> => {
             ensureActive();
@@ -72,7 +110,29 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
         },
     };
 
-    // Automatically start the Workhorse when created
+    async function pollAndRequeue (opts: PollOptions = { pollInterval: seconds(0.25), requeuing: RequeueStrategy.DEFERRED}) : Promise<void> {
+        while (isPolling) {
+            await executorPool.pollAll();
+            const status = await taskQueue.getStatus();
+
+            if (opts.requeuing == RequeueStrategy.DEFERRED) {
+                if (status.queued === 0 && status.failed > 0) {
+                    await workhorse.requeue();
+                }
+            } else if (opts.requeuing == RequeueStrategy.IMMEDIATE) {
+                if (status.failed) {
+                    await workhorse.requeue();
+                }
+            } else {
+                throw new UnreachableError(opts.requeuing as never, 'Unexpected requeue');
+            }
+
+            setTimeout((opts) => { pollAndRequeue(opts) }, opts.pollInterval);
+            return Promise.resolve();
+        }
+    }
+
+    // TODO: Rename to 'resume' or 'enable'
     await workhorse.start();
     return workhorse;
 };

@@ -1,5 +1,5 @@
 import {
-    PollStrategy,
+    TaskExecutorStrategy,
     RunTask,
     SingleTaskExecutor,
     TaskExecutorPool,
@@ -43,15 +43,15 @@ const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: 
             }
         },
         pollAll: async() => {
-            switch(config.pollStrategy) {
-                case PollStrategy.SERIAL:
+            switch(config.taskExecution) {
+                case TaskExecutorStrategy.SERIAL:
                     return executorPool.pollSerial();
-                case PollStrategy.PARALLEL:
+                case TaskExecutorStrategy.PARALLEL:
                     return executorPool.pollParallel();
-                case PollStrategy.NO_WAIT:
+                case TaskExecutorStrategy.DETACHED:
                     return executorPool.pollNoWait();
                 default:
-                    throw new UnreachableError(config.pollStrategy as never, `Unrecognized poll strategy: ${config.pollStrategy}`);
+                    throw new UnreachableError(config.taskExecution as never, `Unrecognized poll strategy: ${config.taskExecution}`);
             }
         },
         pollSerial: async () => {
