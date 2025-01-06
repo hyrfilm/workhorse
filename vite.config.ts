@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import path from 'path';
+import tsconfigPaths from 'vite-tsconfig-paths'
 
 function crossOriginIsolationMiddleware(_, response, next) {
   response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
@@ -13,23 +14,15 @@ export default defineConfig({
       host: 'localhost',
     },
   },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-
-      '@db': path.resolve(__dirname, './src/db'),
-      '@machines': path.resolve(__dirname, './src/machines'),
-      '@util': path.resolve(__dirname, './src/util'),
-    }
-  },
   build: {
     target: "es2022",
   },
   plugins: [
+    tsconfigPaths(),
     {
-        name: 'cross-origin-isolation',
-        configureServer: server => { server.middlewares.use(crossOriginIsolationMiddleware); },
-        configurePreviewServer: server => { server.middlewares.use(crossOriginIsolationMiddleware); },
+      name: 'cross-origin-isolation',
+      configureServer: server => { server.middlewares.use(crossOriginIsolationMiddleware); },
+      configurePreviewServer: server => { server.middlewares.use(crossOriginIsolationMiddleware); },
     },
   ],
   optimizeDeps: {

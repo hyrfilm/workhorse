@@ -7,7 +7,6 @@ interface Workhorse {
     queue: (taskId: string, payload: Payload) => Promise<void>;
     getStatus: () => Promise<QueueStatus>;
     poll: () => Promise<void>;
-    pollNoWait(): void;
     requeue:() => Promise<void>;
     start: () => Promise<void>;
     stop: () => Promise<void>;
@@ -18,6 +17,8 @@ interface WorkhorseConfig {
     backoff: BackoffSettings;
     duplicates: DuplicateStrategy;
     concurrency: number,
+    pollStrategy: PollStrategy,
+
     poll: {
         auto: boolean,
         interval: number,
@@ -34,7 +35,7 @@ interface WorkhorseConfig {
     factories: {
         createDatabase: createDatabaseFunc
         createTaskQueue: createTaskQueueFunc
-        createTaskRunner: createTaskRunnerFunc
+        createHooks: createTaskRunnerFunc
         createTaskExecutor: createTaskExecutorFunc
         createExecutorPool: createExecutorPoolFunc
     }
@@ -42,8 +43,8 @@ interface WorkhorseConfig {
 
 type createDatabaseFunc = (config: WorkhorseConfig) => Promise<RunQuery>;
 type createTaskQueueFunc = (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
-type createTaskRunnerFunc = (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskRunner;
-type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskRunner) => SingleTaskExecutor;
+type createTaskRunnerFunc = (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskHooks;
+type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskHooks) => SingleTaskExecutor;
 type createExecutorPoolFunc = (config: WorkhorseConfig, queue: TaskQueue, runTask: RunTask) => TaskExecutorPool;
 
 
@@ -93,14 +94,14 @@ enum TaskOrderingStrategy {
     // Tasks are always delivered in the order they are added.
     // Note that this has performance implications if adding many tasks in quick succession.
     // Also note that if this is important, failing tasks are retried before queued tasks.
+    // TODO: Not implemented yet
     GUARANTEED = 'guaranteed ordering'
 }
 
-interface TaskRunner {
-    executeHook: () => Promise<void>;
-    successHook: () => Promise<void>;
-    reserveHook: () => Promise<void>;
-    failureHook: () => Promise<void>;
+enum PollStrategy {
+    SERIAL      = 'serial',
+    PARALLEL    = 'parallel',
+    NO_WAIT     = 'no wait',
 }
 
 // Holds TaskExecutors, determined by config.concurrency
@@ -108,7 +109,6 @@ interface TaskExecutorPool {
     startAll(): Promise<void>;
     stopAll(): Promise<void>;
     pollAll(): Promise<void>;
-    pollAllNoWait(): void;
     shutdown(): Promise<void>;
 }
 
@@ -120,7 +120,14 @@ interface SingleTaskExecutor {
     waitFor(tag: 'ready' | 'busy' | 'canStop' | 'stopped' | 'executed'): Promise<void>;
     waitIf(tag: 'busy' | 'executing'): Promise<void>;
     getStatus(): 'stopped' | 'started' | 'critical'; //TODO: Move the types from the machine into this file to make more DRY
-}  
+}
+
+interface TaskHooks {
+    executeHook: () => Promise<void>;
+    successHook: () => Promise<void>;
+    reserveHook: () => Promise<void>;
+    failureHook: () => Promise<void>;
+}
 
 type JSONPrimitive = string | number | boolean | null;
 type JSONObject = { [key: string]: JSONValue };
@@ -166,6 +173,6 @@ function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
 }
 
 
-export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, Workhorse, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskRunner, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, BackoffSettings };
+export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, Workhorse, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskHooks, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, BackoffSettings };
 export type { createDatabaseFunc, createTaskQueueFunc, createTaskRunnerFunc, createTaskExecutorFunc, createExecutorPoolFunc };
-export { TaskState, DuplicateStrategy, TaskOrderingStrategy, assertTaskRow, assertNonPrimitive };
+export { TaskState, DuplicateStrategy, TaskOrderingStrategy, PollStrategy, assertTaskRow, assertNonPrimitive };

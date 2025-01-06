@@ -1,7 +1,7 @@
 import { SQLocal } from 'sqlocal';
-import { RunQuery, SqlExecutor, WorkhorseConfig } from '@/types';
-import { schema } from './sql';
-import { createQueryRunnerSqlocal } from './runQuery';
+import { RunQuery, SqlExecutor, WorkhorseConfig } from '@/types.ts';
+import { schema } from './sql.ts';
+import { createQueryRunnerSqlocal } from './runQuery.ts';
 
 async function createSchema(sql: SqlExecutor): Promise<void> {
     await sql(schema);

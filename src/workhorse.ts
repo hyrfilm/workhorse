@@ -1,11 +1,11 @@
 import {getDefaultConfig} from "./config";
 import {Payload, QueueStatus, RunTask, Workhorse, WorkhorseConfig} from "./types";
-import {createTaskRunner} from "@/TaskRunner.ts";
-import {createDatabase} from "@/db/createDatabase.ts";
-import {createTaskExecutor} from "@/machines/TaskExecutorMachine.ts";
-import {createTaskQueue} from "@/db/TaskQueue.ts";
-import {createExecutorPool} from "@/ExecutorPool.ts";
-import {WorkhorseShutdownError} from "./errors";
+import {createDatabase} from "@/queue/db/createDatabase";
+import {createTaskQueue} from "@/queue/TaskQueue";
+import {createTaskHooks} from "@/executor/TaskHooks";
+import {createTaskExecutor} from "@/executor/TaskExecutor";
+import {createExecutorPool} from "@/executor/TaskExecutorPool";
+import {WorkhorseShutdownError} from "@/errors";
 import log from "loglevel";
 
 log.setDefaultLevel(log.levels.INFO);
@@ -15,7 +15,7 @@ const createDefaultConfig = (): WorkhorseConfig => {
     defaultConfig.factories = {
         createDatabase: createDatabase,
         createTaskQueue: createTaskQueue,
-        createTaskRunner: createTaskRunner,
+        createHooks: createTaskHooks,
         createTaskExecutor: createTaskExecutor,
         createExecutorPool: createExecutorPool,
     };
@@ -54,9 +54,6 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
         poll: async () => {
             ensureActive();
             await executorPool.pollAll();
-        },
-        pollNoWait: () => {
-            executorPool.pollAllNoWait();
         },
         requeue: async () => {
             ensureActive();

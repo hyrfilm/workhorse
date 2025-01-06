@@ -1,4 +1,4 @@
-import {Payload, TaskRow, TaskState} from '@/types';
+import {Payload, TaskRow, TaskState} from '@/types.ts';
 
 const schema = `
 CREATE TABLE task_status (

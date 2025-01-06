@@ -2,11 +2,13 @@
 // TODO: @ts-nocheck is a temporary solution because we don't want to declare the actual database here
 // TODO: Since the tests run in node and uses better-sqlite and if we define the actual
 // TODO: database here we'll trigger a chain of imports that will fail when running tests
-import {DuplicateStrategy, TaskOrderingStrategy, WorkhorseConfig} from "./types";
+import {DuplicateStrategy, PollStrategy, TaskOrderingStrategy, WorkhorseConfig} from "./types";
 import { minutes, seconds } from "./util/time";
 
 const config: WorkhorseConfig = {
     concurrency: 1,
+    pollStrategy: PollStrategy.SERIAL,
+
     poll: {
         //TODO: auto=true is not yet implemented
         auto: false,
@@ -33,7 +35,7 @@ const config: WorkhorseConfig = {
     factories: {
         createDatabase: null,
         createTaskQueue: null,
-        createTaskRunner: null,
+        createHooks: null,
         createTaskExecutor: null,
         createExecutorPool: null,
     }

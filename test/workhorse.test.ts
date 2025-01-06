@@ -1,13 +1,13 @@
 import fc from "fast-check";
-import {Payload, RunTask, WorkhorseConfig} from "@/types";
-import { createWorkhorse } from "@/workhorse";
-import { test, expect, vi } from "vitest";
-import { createDatabaseStub } from "./db/createDatabaseStub";
-import { createTaskQueue } from "@/db/TaskQueue";
-import { createTaskRunner } from "@/TaskRunner";
-import { createTaskExecutor } from "@/machines/TaskExecutorMachine";
-import { createExecutorPool } from "@/ExecutorPool";
-import { WorkhorseShutdownError} from "@/errors.ts";
+import {Payload, PollStrategy, RunTask, WorkhorseConfig} from "@/types";
+import {createWorkhorse} from "@/workhorse";
+import {expect, test, vi} from "vitest";
+import {createDatabaseStub} from "./db/createDatabaseStub";
+import {createTaskQueue} from "@/queue/TaskQueue.ts";
+import {createTaskHooks} from "@/executor/TaskHooks.ts";
+import {createTaskExecutor} from "@/executor/TaskExecutor";
+import {createExecutorPool} from "@/executor/TaskExecutorPool.ts";
+import {WorkhorseShutdownError} from "@/errors.ts";
 
 vi.mock("@/db/createDatabase.ts", () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),
@@ -21,7 +21,7 @@ async function createWorkhorseFixture(runTask: RunTask, options?: Partial<Workho
         factories: {
             createDatabase: createDatabaseStub,
             createTaskQueue: createTaskQueue,
-            createTaskRunner: createTaskRunner,
+            createHooks: createTaskHooks,
             createTaskExecutor: createTaskExecutor,
             createExecutorPool: createExecutorPool,
         },
@@ -146,7 +146,7 @@ test("Fuzzing - start/stop", async () => {
                     return Promise.resolve();
                 };
 
-                const workhorse = await createWorkhorseFixture(runTask, { concurrency });
+                const workhorse = await createWorkhorseFixture(runTask, { concurrency, pollStrategy: PollStrategy.PARALLEL });
 
                 // Queue tasks
                 for (const taskId of taskIds) {
@@ -214,15 +214,15 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
             const currentFailureProb = taskProbStream.next().value*2.0; // make the task have a slight bias towards success
             const shouldFail = taskFailureProb > currentFailureProb; // Fail if probability is lower
             if (shouldFail) {
-                console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
+                //console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
                 throw new Error(`Task ${taskId} failed`);
             } else {
                 if (executedTaskSet.has(taskId)) {
-                    console.log(`Task ${taskId} has already been executed`);
+                    //console.log(`Task ${taskId} has already been executed`);
                     throw new Error(`Task ${taskId} has already been executed`);
                 }
 
-                console.log(`${taskId}`, 'succcess: ', taskFailureProb, currentFailureProb);
+                //console.log(`${taskId}`, 'succcess: ', taskFailureProb, currentFailureProb);
             }
             executedTaskSet.add(taskId);
         };
@@ -237,7 +237,7 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
                 const totalTasks = taskIds.map((id) => `${id}`);
                 const runTask = createTaskFunction(probabilityStream);
 
-                const workhorse = await createWorkhorseFixture(runTask, { concurrency });
+                const workhorse = await createWorkhorseFixture(runTask, { concurrency, pollStrategy: PollStrategy.NO_WAIT });
 
                 // Queue tasks
                 const queuePromises = taskIds.map((id) =>
@@ -247,22 +247,21 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
 
                 // Poll until all tasks succeed
                 while (true) {
-                    console.log('Polling');
-                    workhorse.pollNoWait();
-                    console.log('Done polling');
+                    await workhorse.poll();
+                    //console.log('Done polling');
                     // Check the task queue status
-                    console.log('Check status');
+                    //console.log('Check status');
                     const status = await workhorse.getStatus();
-                    console.log('Status ', status);
+                    //console.log('Status ', status);
                     if (status.successful === totalTasks.length) {
                         break;
                     }
-                    console.log('Done check status');
+                    //console.log('Done check status');
                     if (status.failed>0) {
-                        console.log('*** requeuing')
+                        //console.log('*** requeuing')
                         await workhorse.requeue();
                         const status = await workhorse.getStatus();
-                        console.log('Status ', status);
+                        //console.log('Status ', status);
                     }
                 }
 

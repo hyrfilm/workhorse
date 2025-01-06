@@ -1,15 +1,17 @@
 import {
+    PollStrategy,
     RunTask,
     SingleTaskExecutor,
     TaskExecutorPool,
     TaskQueue,
     WorkhorseConfig
 } from "@/types.ts";
+import {UnreachableError} from "@/errors.ts";
 
 const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: RunTask): TaskExecutorPool => {
     let executors: SingleTaskExecutor[] = [];
     for (let i = 0; i < config.concurrency; i++) {
-        const taskRunner = config.factories.createTaskRunner(config, taskQueue, run);
+        const taskRunner = config.factories.createHooks(config, taskQueue, run);
         const executor = config.factories.createTaskExecutor(config, taskRunner)
         executors.push(executor);
     }
@@ -40,16 +42,26 @@ const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: 
                 executors = [];
             }
         },
-        /*
-        pollAll: async () => {
+        pollAll: async() => {
+            switch(config.pollStrategy) {
+                case PollStrategy.SERIAL:
+                    return executorPool.pollSerial();
+                case PollStrategy.PARALLEL:
+                    return executorPool.pollParallel();
+                case PollStrategy.NO_WAIT:
+                    return executorPool.pollNoWait();
+                default:
+                    throw new UnreachableError(config.pollStrategy as never, `Unrecognized poll strategy: ${config.pollStrategy}`);
+            }
+        },
+        pollSerial: async () => {
             for (const executor of executors) {
                 const preWait = config.poll.pre.wait;
                 await executor.waitFor(preWait);
                 executor.poll();
             }
         },
-        */
-        pollAll: async () => {
+        pollParallel: async () => {
             const tasks: Promise<void>[] = [];
 
             for (const executor of executors) {
@@ -63,12 +75,13 @@ const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: 
             }
             await Promise.all(tasks);
         },
-        pollAllNoWait:  () => {
+        pollNoWait: () => {
             for (const executor of executors) {
                 if (executor.getStatus() === 'started') {
                     executor.poll();
                 }
             }
+            return Promise.resolve();
         },
     }
 

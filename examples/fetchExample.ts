@@ -1,8 +1,8 @@
 import log from "loglevel";
-import {createWorkhorse} from "@/workhorse.ts";
-import * as tasks from "@/tasks.ts";
-import { config } from "./config";
-import { seconds } from "./util/time";
+import {createWorkhorse} from "../src/workhorse.ts";
+import * as tasks from "../src/tasks.ts";
+import { config } from "../src/config";
+import { seconds } from "../src/util/time";
 
 export async function fetchExample() {
  
