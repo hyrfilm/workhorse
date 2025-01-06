@@ -19,12 +19,12 @@ const createDefaultConfig = (): WorkhorseConfig => {
     return defaultConfig;
 }
 
-const createWorkhorse = async (run: RunTask, config?: Partial<WorkhorseConfig>) : Promise<Workhorse> => {
-    const cfg = { ...createDefaultConfig(), ...config };
+const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>) : Promise<Workhorse> => {
+    const config = { ...createDefaultConfig(), ...options };
 
-    const runQuery = await cfg.factories.createDatabase(cfg);
-    const taskQueue = cfg.factories.createTaskQueue(cfg, runQuery);
-    const executorPool = cfg.factories.createExecutorPool(cfg, taskQueue, run);
+    const runQuery = await config.factories.createDatabase(config);
+    const taskQueue = config.factories.createTaskQueue(config, runQuery);
+    const executorPool = config.factories.createExecutorPool(config, taskQueue, run);
 
     //TODO: Add some good way to inspect / diagnose stuff
     //taskExecutor.subscribe((snapshot) => log.info(snapshot.value));

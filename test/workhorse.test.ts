@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { Payload } from "@/types";
+import {Payload, RunTask, WorkhorseConfig} from "@/types";
 import { createWorkhorse } from "@/workhorse";
 import { test, expect, vi } from "vitest";
 import { createDatabaseStub } from "./db/createDatabaseStub";
@@ -7,13 +7,28 @@ import { createTaskQueue } from "@/db/TaskQueue";
 import { createTaskRunner } from "@/TaskRunner";
 import { createTaskExecutor } from "@/machines/TaskExecutorMachine";
 import { createExecutorPool } from "@/ExecutorPool";
-import { aw } from "vitest/dist/chunks/reporters.D7Jzd9GS.js";
 
 vi.mock("@/db/createDatabase.ts", () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),
 }));
 
-test("Tasks are processed in the same order they were added (high concurrency)", async () => {
+// Returns a workhorse instance that's identical to a regular one except that it
+// runs on node.js with an in-memory sqlite db.
+async function createWorkhorseFixture(runTask: RunTask, options?: Partial<WorkhorseConfig>) {
+    const workhorse = await createWorkhorse(runTask, {
+        ...options,
+        factories: {
+            createDatabase: createDatabaseStub,
+            createTaskQueue: createTaskQueue,
+            createTaskRunner: createTaskRunner,
+            createTaskExecutor: createTaskExecutor,
+            createExecutorPool: createExecutorPool,
+        },
+    });
+    return workhorse;
+}
+
+test("Tasks are processed atomically in the order they were added (high concurrency)", async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.scheduler(),
@@ -38,7 +53,8 @@ test("Tasks are processed in the same order they were added (high concurrency)",
           await taskPromise;
         };
 
-        // Create the workhorse instance
+        const workhorse = await createWorkhorseFixture(runTask, { concurrency })
+/*
         const workhorse = await createWorkhorse(runTask, {
           concurrency,
           factories: {
@@ -49,7 +65,7 @@ test("Tasks are processed in the same order they were added (high concurrency)",
             createExecutorPool: createExecutorPool,
           },
         });
-
+*/
         // Queue tasks
         const queuePromises = taskIds.map((id) =>
           scheduler.schedule(workhorse.queue(`${id}`, {}))
@@ -73,10 +89,10 @@ test("Tasks are processed in the same order they were added (high concurrency)",
         expect(expectedIds).toEqual(executedTasks);
       }
     )
-  );
+  , {verbose: 2, numRuns: 100});
 });
 
-test("Tasks are processed in the same order they were added (low concurrency)", async () => {
+test("Tasks are processed atomically in the order they were added (low concurrency)", async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.scheduler(),
@@ -94,18 +110,9 @@ test("Tasks are processed in the same order they were added (low concurrency)", 
         };
 
         // Create the workhorse instance
-        const workhorse = await createWorkhorse(runTask, {
-          concurrency,
-          factories: {
-            createDatabase: createDatabaseStub,
-            createTaskQueue: createTaskQueue,
-            createTaskRunner: createTaskRunner,
-            createTaskExecutor: createTaskExecutor,
-            createExecutorPool: createExecutorPool,
-          },
-        });
+          const workhorse = await createWorkhorseFixture(runTask, { concurrency });
 
-        const initialStatus = await workhorse.getStatus();
+          const initialStatus = await workhorse.getStatus();
         let expectedStatus = { queued: 0, executing: 0, successful: 0, failed: 0};
         expect(expectedStatus).toEqual(initialStatus);
 
@@ -131,5 +138,5 @@ test("Tasks are processed in the same order they were added (low concurrency)", 
         expect(expectedIds).toEqual(actualIds);
       }
     )
-  );
+  , {verbose: 2, numRuns: 100});
 });
