@@ -7,6 +7,7 @@ interface Workhorse {
     queue: (taskId: string, payload: Payload) => Promise<void>;
     getStatus: () => Promise<QueueStatus>;
     poll: () => Promise<void>;
+    pollNoWait(): void;
     requeue:() => Promise<void>;
     start: () => Promise<void>;
     stop: () => Promise<void>;
@@ -107,6 +108,7 @@ interface TaskExecutorPool {
     startAll(): Promise<void>;
     stopAll(): Promise<void>;
     pollAll(): Promise<void>;
+    pollAllNoWait(): void;
     shutdown(): Promise<void>;
 }
 

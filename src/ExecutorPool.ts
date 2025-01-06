@@ -40,11 +40,34 @@ const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: 
                 executors = [];
             }
         },
+        /*
         pollAll: async () => {
             for (const executor of executors) {
                 const preWait = config.poll.pre.wait;
                 await executor.waitFor(preWait);
                 executor.poll();
+            }
+        },
+        */
+        pollAll: async () => {
+            const tasks: Promise<void>[] = [];
+
+            for (const executor of executors) {
+                if (executor.getStatus() === 'started') {
+                    const preWait = config.poll.pre.wait;
+                    // Instead of `await executor.waitFor(preWait)`, push the promise
+                    tasks.push(
+                        executor.waitFor(preWait).then(() => executor.poll())
+                    );
+                }
+            }
+            await Promise.all(tasks);
+        },
+        pollAllNoWait:  () => {
+            for (const executor of executors) {
+                if (executor.getStatus() === 'started') {
+                    executor.poll();
+                }
             }
         },
     }

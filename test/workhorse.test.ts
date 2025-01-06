@@ -7,6 +7,7 @@ import { createTaskQueue } from "@/db/TaskQueue";
 import { createTaskRunner } from "@/TaskRunner";
 import { createTaskExecutor } from "@/machines/TaskExecutorMachine";
 import { createExecutorPool } from "@/ExecutorPool";
+import { WorkhorseShutdownError} from "@/errors.ts";
 
 vi.mock("@/db/createDatabase.ts", () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),
@@ -54,18 +55,7 @@ test("Tasks are processed atomically in the order they were added (high concurre
         };
 
         const workhorse = await createWorkhorseFixture(runTask, { concurrency })
-/*
-        const workhorse = await createWorkhorse(runTask, {
-          concurrency,
-          factories: {
-            createDatabase: createDatabaseStub,
-            createTaskQueue: createTaskQueue,
-            createTaskRunner: createTaskRunner,
-            createTaskExecutor: createTaskExecutor,
-            createExecutorPool: createExecutorPool,
-          },
-        });
-*/
+
         // Queue tasks
         const queuePromises = taskIds.map((id) =>
           scheduler.schedule(workhorse.queue(`${id}`, {}))
@@ -140,3 +130,150 @@ test("Tasks are processed atomically in the order they were added (low concurren
     )
   , {verbose: 2, numRuns: 100});
 });
+
+test("Fuzzing - start/stop", async () => {
+    await fc.assert(
+        fc.asyncProperty(
+            fc.uniqueArray(fc.uuid(), { minLength: 1, maxLength: 36 }),
+            fc.noShrink(fc.infiniteStream(fc.noBias(fc.boolean()))),
+            fc.integer({ min: 50, max: 100 }),
+            async (taskIds, startStop, concurrency) => {
+                const executedTasks: string[] = [];
+                const expectedIds = [...taskIds].map((id) => `${id}`);
+
+                const runTask = async (taskId: string, _payload: Payload): Promise<void> => {
+                    executedTasks.push(taskId);
+                    return Promise.resolve();
+                };
+
+                const workhorse = await createWorkhorseFixture(runTask, { concurrency });
+
+                // Queue tasks
+                for (const taskId of taskIds) {
+                    await workhorse.queue(`${taskId}`, {});
+                }
+
+                // Randomly start/stop workhorse while polling tasks
+                let shouldContinue = true;
+                while (shouldContinue) {
+                    const start = startStop.next().value;
+                    if (start) {
+                        await workhorse.start();
+                    } else {
+                        await workhorse.stop();
+                    }
+
+                    await workhorse.poll();
+                    const status = await workhorse.getStatus();
+
+                    shouldContinue = status.queued > 0 || status.executing > 0;
+                }
+
+                await workhorse.stop();
+
+
+                // destroy the instance
+                const finalStatus = await workhorse.shutdown();
+
+                expect(finalStatus).toEqual({
+                    queued: 0,
+                    executing: 0,
+                    successful: taskIds.length,
+                    failed: 0,
+                });
+
+                // Ensure all tasks executed successfully
+                expect(executedTasks).toEqual(expectedIds);
+
+                // Verify all methods throw after shutdown
+                const methodsToTest = [
+                    () => workhorse.queue("task-2", { key: "value" }),
+                    () => workhorse.getStatus(),
+                    () => workhorse.poll(),
+                    () => workhorse.start(),
+                    () => workhorse.stop(),
+                    () => workhorse.requeue(),
+                ];
+
+                for (const method of methodsToTest) {
+                    await expect(method()).rejects.toThrow(WorkhorseShutdownError);
+                }
+            }
+        ),
+        { verbose: 2, numRuns: 100 }
+    );
+});
+
+test("Fuzzing - tasks are processed atomically with retries until all succeed", async () => {
+    // Helper to create a deterministic task runner using an infinite stream of probabilities
+    const createTaskFunction = (taskProbStream: IterableIterator<number>) => {
+        const executedTaskSet = new Set<string>();
+        return async (taskId: string, _payload: Payload): Promise<void> => {
+            // Use the next value from the probability stream
+            const taskFailureProb = taskProbStream.next().value;
+            const currentFailureProb = taskProbStream.next().value*2.0; // make the task have a slight bias towards success
+            const shouldFail = taskFailureProb > currentFailureProb; // Fail if probability is lower
+            if (shouldFail) {
+                console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
+                throw new Error(`Task ${taskId} failed`);
+            } else {
+                if (executedTaskSet.has(taskId)) {
+                    console.log(`Task ${taskId} has already been executed`);
+                    throw new Error(`Task ${taskId} has already been executed`);
+                }
+
+                console.log(`${taskId}`, 'succcess: ', taskFailureProb, currentFailureProb);
+            }
+            executedTaskSet.add(taskId);
+        };
+    };
+
+    await fc.assert(
+        fc.asyncProperty(
+            fc.uniqueArray(fc.uuid(), { minLength: 1, maxLength: 36 }), // Unique task IDs
+            fc.noShrink(fc.infiniteStream(fc.integer({ min: 0, max: 100 }))), // Infinite stream of probabilities
+            fc.integer({ min: 30, max: 30 }), // Concurrency level
+            async (taskIds, probabilityStream, concurrency) => {
+                const totalTasks = taskIds.map((id) => `${id}`);
+                const runTask = createTaskFunction(probabilityStream);
+
+                const workhorse = await createWorkhorseFixture(runTask, { concurrency });
+
+                // Queue tasks
+                const queuePromises = taskIds.map((id) =>
+                    workhorse.queue(`${id}`, {})
+                );
+                await Promise.all(queuePromises);
+
+                // Poll until all tasks succeed
+                while (true) {
+                    console.log('Polling');
+                    workhorse.pollNoWait();
+                    console.log('Done polling');
+                    // Check the task queue status
+                    console.log('Check status');
+                    const status = await workhorse.getStatus();
+                    console.log('Status ', status);
+                    if (status.successful === totalTasks.length) {
+                        break;
+                    }
+                    console.log('Done check status');
+                    if (status.failed>0) {
+                        console.log('*** requeuing')
+                        await workhorse.requeue();
+                        const status = await workhorse.getStatus();
+                        console.log('Status ', status);
+                    }
+                }
+
+                await workhorse.stop();
+
+                // Ensure all tasks were executed successfully
+                expect(totalTasks.length).toBe((await workhorse.getStatus()).successful);
+            }
+        ),
+        { verbose: 2, numRuns: 100},
+    );
+});
+
+
