@@ -1,4 +1,4 @@
-import {setup, fromPromise, waitFor, createActor } from "xstate";
+import {setup, fromPromise, waitFor, createActor, assign, assertEvent } from "xstate";
 import { Payload, WorkhorseStatus, TaskQueue, TaskExecutorPool, QueueStatus } from "@/types.ts";
 
 type ResetEvent = { type: "reset" }
@@ -89,6 +89,9 @@ export const createCommandDispatcherMachine = () => {
                     src: "dispatchCommand",
                     onDone: {
                         target: "success",
+                        actions: assign({
+                            status: ({ event }) => event.output,
+                        }),
                     },
                     onError: { 
                         target: "error" 
