@@ -17,7 +17,7 @@ export async function fetchExample() {
 
     log.info("Creating workhorse instance...");
 
-    const numTasks = 1000;
+    const numTasks = 100;
 
     const workhorse = await createWorkhorse(tasks.jsonRequestTask);
 
@@ -35,5 +35,13 @@ export async function fetchExample() {
         log.info(`Task added: ${taskId}`);
     }
 
-    log.info("Processing tasks..."); 
+    await workhorse.poll();
+    await workhorse.poll();
+    await workhorse.poll();
+    await workhorse.poll();
+    await workhorse.poll();
+    await workhorse.poll();
+    await workhorse.poll();
+    await workhorse.poll();
+
 }

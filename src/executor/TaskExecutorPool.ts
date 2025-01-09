@@ -4,15 +4,16 @@ import {
     SingleTaskExecutor,
     TaskExecutorPool,
     TaskQueue,
-    WorkhorseConfig
+    WorkhorseConfig,
+    Inspector
 } from "@/types.ts";
 import {UnreachableError} from "@/errors.ts";
 
-const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: RunTask): TaskExecutorPool => {
+const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: RunTask, inspect: Inspector): TaskExecutorPool => {
     let executors: SingleTaskExecutor[] = [];
     for (let i = 0; i < config.concurrency; i++) {
         const taskRunner = config.factories.createHooks(config, taskQueue, run);
-        const executor = config.factories.createTaskExecutor(config, taskRunner)
+        const executor = config.factories.createTaskExecutor(config, taskRunner, inspect);
         executors.push(executor);
     }
 

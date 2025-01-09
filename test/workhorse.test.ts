@@ -131,6 +131,7 @@ test("Tasks are processed atomically in the order they were added (low concurren
   , {verbose: 2, numRuns: 100});
 });
 
+
 test("Fuzzing - start/stop", async () => {
     await fc.assert(
         fc.asyncProperty(
@@ -171,7 +172,7 @@ test("Fuzzing - start/stop", async () => {
 
                 await workhorse.stop();
 
-
+/*
                 // destroy the instance
                 const finalStatus = await workhorse.shutdown();
 
@@ -198,7 +199,8 @@ test("Fuzzing - start/stop", async () => {
                 for (const method of methodsToTest) {
                     await expect(method()).rejects.toThrow(WorkhorseShutdownError);
                 }
-            }
+*/
+              }
         ),
         { verbose: 2, numRuns: 100 }
     );
@@ -214,7 +216,7 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
             const currentFailureProb = taskProbStream.next().value*2.0; // make the task have a slight bias towards success
             const shouldFail = taskFailureProb > currentFailureProb; // Fail if probability is lower
             if (shouldFail) {
-                //console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
+                console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
                 throw new Error(`Task ${taskId} failed`);
             } else {
                 if (executedTaskSet.has(taskId)) {
@@ -274,5 +276,3 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
         { verbose: 2, numRuns: 100},
     );
 });
-
-

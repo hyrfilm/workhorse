@@ -1,3 +1,5 @@
+import { InspectionEvent, Observer } from "xstate";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SqlExecutor = (queryTemplate: TemplateStringsArray | string, ...params: unknown[]) => Promise<QueryResult[]>;
 type QueryResult = Record<string, string | number | null>[];
@@ -16,6 +18,8 @@ interface Workhorse {
     stop: () => Promise<void>;
     shutdown: () => Promise<QueueStatus>;
 }
+
+export type Inspector = Observer<InspectionEvent> | ((inspectionEvent: InspectionEvent) => void) | undefined;
 
 interface WorkhorseConfig {
     backoff: BackoffSettings;
@@ -48,8 +52,8 @@ interface WorkhorseConfig {
 type createDatabaseFunc = (config: WorkhorseConfig) => Promise<RunQuery>;
 type createTaskQueueFunc = (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
 type createTaskRunnerFunc = (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskHooks;
-type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskHooks) => SingleTaskExecutor;
-type createExecutorPoolFunc = (config: WorkhorseConfig, queue: TaskQueue, runTask: RunTask) => TaskExecutorPool;
+type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskHooks, inspect?: Inspector) => SingleTaskExecutor;
+type createExecutorPoolFunc = (config: WorkhorseConfig, queue: TaskQueue, runTask: RunTask, inspect?: Inspector) => TaskExecutorPool;
 
 
 enum TaskState {
@@ -67,12 +71,7 @@ interface TaskRow {
     payload: Payload;
 }
 
-interface WorkhorseStatus {
-    queued: number;
-    completed: number;
-    successful: number;
-    failed: number;
-}
+type WorkhorseStatus = QueueStatus
 
 interface TaskQueue {
     addTask(taskId: string, payload: Payload) : Promise<void>;

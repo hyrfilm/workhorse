@@ -1,6 +1,6 @@
 import {createBackoff} from "@/util/backoff.ts";
 import {createActor, fromPromise, setup, waitFor} from "xstate";
-import {WorkhorseConfig, TaskHooks, SingleTaskExecutor} from "@/types.ts";
+import {WorkhorseConfig, TaskHooks, SingleTaskExecutor, Inspector} from "@/types.ts";
 
 const reserveTask = async (): Promise<void> => {};
 const executeTask = async (): Promise<void> => {};
@@ -102,7 +102,7 @@ export const taskExecutorMachine = machineSetup.createMachine({
   },
 });
 
-export function createTaskExecutor(config: WorkhorseConfig, taskRunner: TaskHooks): SingleTaskExecutor {
+export function createTaskExecutor(config: WorkhorseConfig, taskRunner: TaskHooks, inspect?: Inspector): SingleTaskExecutor {
   backoff = createBackoff(config.backoff);
     const machine = taskExecutorMachine.provide({
         actors: {
@@ -113,7 +113,7 @@ export function createTaskExecutor(config: WorkhorseConfig, taskRunner: TaskHook
         },
     });
 
-    const actor = createActor(machine);
+    const actor = createActor(machine, { inspect });
     actor.start();
 
     const taskExecutor = {
