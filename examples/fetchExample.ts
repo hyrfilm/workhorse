@@ -23,13 +23,14 @@ export async function fetchExample() {
 
     log.info(`Creating ${numTasks} tasks...`);
 
-    await workhorse.startPoller();
+//    await workhorse.startPoller();
 
     for (let i=0;i<numTasks;i++) {
         const url = `https://jsonplaceholder.typicode.com/posts`;
         const body = { title: `title ${i}`, body: `body ${i}`, userId: i};
         const method = 'POST';
 
+        console.log(i);
         const taskId = `task-${i}`
         await workhorse.queue(taskId, { url, method, body });
         log.info(`Task added: ${taskId}`);

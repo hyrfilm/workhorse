@@ -12,8 +12,6 @@ interface Workhorse {
     stopPoller: () => Promise<void>;
     poll: () => Promise<void>;
     requeue:() => Promise<void>;
-    start: () => Promise<void>;
-    stop: () => Promise<void>;
     shutdown: () => Promise<QueueStatus>;
 }
 
@@ -67,11 +65,8 @@ interface TaskRow {
     payload: Payload;
 }
 
-interface WorkhorseStatus {
-    queued: number;
-    completed: number;
-    successful: number;
-    failed: number;
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface WorkhorseStatus extends QueueStatus {
 }
 
 interface TaskQueue {
