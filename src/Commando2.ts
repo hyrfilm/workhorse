@@ -62,11 +62,13 @@ export const createCommandDispatcherMachine = () => {
     }).createMachine({
         id: "commandDispatcher",
         initial: "ready",
-        context: () => ({
-            status: { queued: 0, completed: 0, successful: 0, failed: 0, executing: 0 } as WorkhorseStatus,
-            queue: {} as TaskQueue,
-            executors: {} as TaskExecutorPool,
-        }),
+        context: ({ input }) => {
+            return {
+                status: { queued: 0, completed: 0, successful: 0, failed: 0, executing: 0 },
+                queue: input.queue,
+                executors: input.executors,
+            };
+        },
         states: {
             ready: {
                 tags: ["ready"],
@@ -116,10 +118,11 @@ export const createCommandDispatcherMachine = () => {
 export const createCommandDispatcher = (queue: TaskQueue, executors: TaskExecutorPool) => {
     const machine = createCommandDispatcherMachine();
     const actor = createActor(machine, { input: { queue, executors }});
+/*
     actor.subscribe((snapshot) => {
         console.log(snapshot.value);
     });
-
+*/
     const executeCommand = () => async (event: MachineEvent): Promise<QueueStatus> => {
         await waitFor(actor,(state) => state.hasTag('ready'));
         actor.send(event);  

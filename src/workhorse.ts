@@ -35,27 +35,28 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
     const taskQueue = config.factories.createTaskQueue(config, runQuery);
     const executorPool = config.factories.createExecutorPool(config, taskQueue, run);
 
-    const disptacher = createCommandDispatcher(taskQueue, executorPool);
+    const dispatcher = createCommandDispatcher(taskQueue, executorPool);
+    await dispatcher.startExecutors();
 
     const workhorse: Workhorse = {
         queue: async (taskId: string, payload: Payload) => {
-            await disptacher.queue(taskId, payload);
+            await dispatcher.queue(taskId, payload);
         },
         getStatus: async () => {
-            return await disptacher.getStatus();
+            return await dispatcher.getStatus();
         },
         startPoller: async () => {            
         },
         stopPoller: async () => {
         },
         poll: async () => {
-            await disptacher.poll();
+            await dispatcher.poll();
         },
         requeue: async () => {
-            await disptacher.requeue();
+            await dispatcher.requeue();
         },
         shutdown: async (): Promise<QueueStatus> => {
-            return await disptacher.getStatus();
+            return await dispatcher.getStatus();
         },
     };
 /*

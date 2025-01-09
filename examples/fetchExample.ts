@@ -7,7 +7,7 @@ import {TaskExecutorStrategy} from "../src/types";
 
 export async function fetchExample() {
  
-    log.setDefaultLevel(log.levels.DEBUG);
+    log.setDefaultLevel(log.levels.INFO);
     
     config.concurrency = 50;
     //config.poll.auto = true;
@@ -36,5 +36,14 @@ export async function fetchExample() {
         log.info(`Task added: ${taskId}`);
     }
 
-    log.info("Processing tasks..."); 
+    log.info("Processing tasks...");
+
+    let done = false;
+    while(!done) {
+        const status = await workhorse.getStatus();
+        if (status.successful===numTasks) {
+            done = true;
+        }
+        await workhorse.poll();
+    }
 }
