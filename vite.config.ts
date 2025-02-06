@@ -21,7 +21,10 @@ export default defineConfig({
   build: {
     target: "es2022",
     lib: {
-      entry: resolve(__dirname, 'src/main.ts'),
+      entry: {
+        lib: resolve(__dirname, 'src/main.ts'),
+        demo: resolve(__dirname, 'src/index.html'),
+      },
       name: 'workhorse',
       fileName: 'workhorse',
     },

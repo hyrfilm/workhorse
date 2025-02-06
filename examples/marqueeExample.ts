@@ -38,7 +38,7 @@ export async function marqueeExample() {
         const el = document.getElementById("status") as Element;
         el.innerHTML = JSON.stringify(status);
         log.info(status);
-        if (!status.queued) {
+        if (status.successful===numTasks) {
             done = true;
         }
     }
