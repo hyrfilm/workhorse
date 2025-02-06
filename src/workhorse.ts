@@ -12,7 +12,7 @@ import {createTaskHooks} from "@/executor/TaskHooks";
 import {createTaskExecutor} from "@/executor/TaskExecutor";
 import {createExecutorPool} from "@/executor/TaskExecutorPool";
 import log from "loglevel";
-import { fromCallback, createActor } from "xstate";
+//import { fromCallback, createActor } from "xstate";
 import { createDispatcher } from "./dispatcher";
 log.setDefaultLevel(log.levels.INFO);
 /*
@@ -79,14 +79,6 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
         startPoller: async () => {
         },
         stopPoller: async () => {
-        },
-        //TODO: Rename to 'resume' or 'enable'
-        start: async () => {
-          await dispatcher.startExecutors();
-        },
-        //TODO: Rename to 'pause' or 'disable'
-        stop: async () => {
-          await dispatcher.stopExecutors();
         },
         poll: async () => {
           await dispatcher.poll();

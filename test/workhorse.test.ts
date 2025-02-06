@@ -7,7 +7,6 @@ import {createTaskQueue} from "@/queue/TaskQueue.ts";
 import {createTaskHooks} from "@/executor/TaskHooks.ts";
 import {createTaskExecutor} from "@/executor/TaskExecutor";
 import {createExecutorPool} from "@/executor/TaskExecutorPool.ts";
-import {WorkhorseShutdownError} from "@/errors.ts";
 
 vi.mock("@/db/createDatabase.ts", () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),
@@ -71,8 +70,6 @@ test("Tasks are processed atomically in the order they were added (high concurre
         // Wait for all `runTask` promises
         await scheduler.waitFor(Promise.all(runTaskPromises));
 
-        await workhorse.stop();
-
         //console.log('expected: ', [...expectedIds]);
         //console.log('actual:   ', [...executedTasks]);
         // Validate the results
@@ -131,7 +128,10 @@ test("Tasks are processed atomically in the order they were added (low concurren
   , {verbose: 2, numRuns: 100});
 });
 
-
+//TODO: Decide what to do with this one:
+//TODO: Should there even be a start/stop method? In that case it should have a better name since this is only is related to the executor pool
+//TODO: Should there be a shutdown method? Is it really necessary for it to throw exceptions like this function tries to verify?
+/*
 test("Fuzzing - start/stop", async () => {
     await fc.assert(
         fc.asyncProperty(
@@ -172,7 +172,6 @@ test("Fuzzing - start/stop", async () => {
 
                 await workhorse.stop();
 
-/*
                 // destroy the instance
                 const finalStatus = await workhorse.shutdown();
 
@@ -199,13 +198,12 @@ test("Fuzzing - start/stop", async () => {
                 for (const method of methodsToTest) {
                     await expect(method()).rejects.toThrow(WorkhorseShutdownError);
                 }
-*/
               }
         ),
         { verbose: 2, numRuns: 100 }
     );
 });
-
+*/
 test("Fuzzing - tasks are processed atomically with retries until all succeed", async () => {
     // Helper to create a deterministic task runner using an infinite stream of probabilities
     const createTaskFunction = (taskProbStream: IterableIterator<number>) => {
@@ -216,7 +214,7 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
             const currentFailureProb = taskProbStream.next().value*2.0; // make the task have a slight bias towards success
             const shouldFail = taskFailureProb > currentFailureProb; // Fail if probability is lower
             if (shouldFail) {
-                console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
+                //console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
                 throw new Error(`Task ${taskId} failed`);
             } else {
                 if (executedTaskSet.has(taskId)) {
@@ -262,12 +260,10 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
                     if (status.failed>0) {
                         //console.log('*** requeuing')
                         await workhorse.requeue();
-                        const status = await workhorse.getStatus();
+                        //const status = await workhorse.getStatus();
                         //console.log('Status ', status);
                     }
                 }
-
-                await workhorse.stop();
 
                 // Ensure all tasks were executed successfully
                 expect(totalTasks.length).toBe((await workhorse.getStatus()).successful);

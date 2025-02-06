@@ -1,14 +1,18 @@
-import { defineConfig } from "vite";
-import path from 'path';
+import {defineConfig} from "vite";
+import { dirname, resolve } from 'node:path'
 import tsconfigPaths from 'vite-tsconfig-paths'
+import { fileURLToPath } from 'node:url'
 
-function crossOriginIsolationMiddleware(_, response, next) {
+function crossOriginIsolationMiddleware(_: any, response: any, next: any) {
   response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
   next();
 }
 
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
 export default defineConfig({
+  base: "./",
   server: {
     hmr: {
       host: 'localhost',
@@ -16,6 +20,11 @@ export default defineConfig({
   },
   build: {
     target: "es2022",
+    lib: {
+      entry: resolve(__dirname, 'src/main.ts'),
+      name: 'workhorse',
+      fileName: 'workhorse',
+    },
   },
   plugins: [
     tsconfigPaths(),

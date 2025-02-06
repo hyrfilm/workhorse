@@ -84,11 +84,11 @@ const dispatchHook = fromPromise(
                 await executors.pollAll();
                 break;
             case TaskQueueCommand.GetStatus:
-                await queue.getStatus();
+                status = await queue.getStatus();
                 break;
         }
 
-        //return queue.getStatus();
+        return status;
     }
 );
 
@@ -185,7 +185,6 @@ const createDispatcher = (queue: TaskQueue, executors: TaskExecutorPool, inspect
     };
 
     actor.start();
-    console.log(actor.getSnapshot());
 
     return {
         getStatus: () => execute({ type: TaskQueueCommand.GetStatus }),

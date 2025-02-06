@@ -14,8 +14,6 @@ interface Workhorse {
     stopPoller: () => Promise<void>;
     poll: () => Promise<void>;
     requeue:() => Promise<void>;
-    start: () => Promise<void>;
-    stop: () => Promise<void>;
     shutdown: () => Promise<QueueStatus>;
 }
 
