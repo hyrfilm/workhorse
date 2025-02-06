@@ -1,6 +1,6 @@
 import {getDefaultConfig} from "./config";
 import {
-    Payload,
+    Payload, PollOptions,
     QueueStatus,
     RunTask,
     Workhorse,
@@ -12,40 +12,10 @@ import {createTaskHooks} from "@/executor/TaskHooks";
 import {createTaskExecutor} from "@/executor/TaskExecutor";
 import {createExecutorPool} from "@/executor/TaskExecutorPool";
 import log from "loglevel";
-//import { fromCallback, createActor } from "xstate";
 import { createDispatcher } from "./dispatcher";
+import {createPeriodicJob } from "@/util/periodic.ts";
 log.setDefaultLevel(log.levels.INFO);
-/*
-const callback = fromCallback(({ }) => {
-    log.debug('rootActor - starting.')
-    // Cleanup function
-    return () => {
-        log.debug('rootActor - starting.')
-    };
-});
 
-const rootActor = createActor(callback, {
-  inspect: (inspectionEvent) => {
-    if (inspectionEvent.type === '@xstate.actor') {
-      console.log(inspectionEvent.actorRef);
-    }
-
-    if (inspectionEvent.type === '@xstate.event') {
-      console.log(inspectionEvent.sourceRef);
-      console.log(inspectionEvent.actorRef);
-      console.log(inspectionEvent.event);
-    }
-
-    if (inspectionEvent.type === '@xstate.snapshot') {
-      console.log(inspectionEvent.actorRef);
-      console.log(inspectionEvent.event);
-      console.log(inspectionEvent.snapshot);
-    }
-  }
-});
-
-const inspect = rootActor.options.inspect;
-*/
 const createDefaultConfig = (): WorkhorseConfig => {
     const defaultConfig = getDefaultConfig();
     defaultConfig.factories = {
@@ -59,26 +29,33 @@ const createDefaultConfig = (): WorkhorseConfig => {
 }
 
 const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>): Promise<Workhorse> => {
-    //rootActor.start();
-
     const config = { ...createDefaultConfig(), ...options };
 
     const runQuery = await config.factories.createDatabase(config);
     const taskQueue = config.factories.createTaskQueue(config, runQuery);
-    const executorPool = config.factories.createExecutorPool(config, taskQueue, run, undefined);
-    const dispatcher = createDispatcher(taskQueue, executorPool, undefined);
+    const executorPool = config.factories.createExecutorPool(config, taskQueue, run);
+    const dispatcher = createDispatcher(taskQueue, executorPool);
+    const poller = async() => {
+        await dispatcher.poll();
+        const status = await dispatcher.getStatus();
+        if (status.queued===0 && status.failed>0) {
+            await dispatcher.requeue();
+        }
+    }
+    let pollingTask = createPeriodicJob(poller, config.poll.interval);
 
     const workhorse: Workhorse = {
         queue: async (taskId: string, payload: Payload) => {
             await taskQueue.addTask(taskId, payload);
         },
         getStatus: async () => {
-            //workhorseStatus.update(await taskQueue.getStatus())
             return await taskQueue.getStatus();
         },
-        startPoller: async () => {
+        startPoller: (_pollOptions?: PollOptions) => {
+            pollingTask.start();
         },
-        stopPoller: async () => {
+        stopPoller: () => {
+            pollingTask.stop();
         },
         poll: async () => {
           await dispatcher.poll();
@@ -93,6 +70,9 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
     };
 
     await dispatcher.startExecutors();
+    if (config.poll.auto) {
+        workhorse.startPoller();
+    }
 
     return workhorse;
 }

@@ -14,8 +14,6 @@ import {
   QueueStatus,
 } from "@/types.ts";
 
-import { Inspector } from "@/types";
-
 enum TaskQueueCommand {
     Queue = "taskQueue.queue",
     Requeue = "taskQueue.requeue",
@@ -171,9 +169,9 @@ const createDispatcherMachine = () => {
   });
 };
 
-const createDispatcher = (queue: TaskQueue, executors: TaskExecutorPool, inspect?: Inspector) => {
+const createDispatcher = (queue: TaskQueue, executors: TaskExecutorPool) => {
     const machine = createDispatcherMachine();
-    const actor = createActor(machine, { input: { queue, executors }, inspect });
+    const actor = createActor(machine, { input: { queue, executors } });
 
     const execute = async (event: MachineEvent): Promise<QueueStatus> => {
         await waitFor(actor, (state) => state.hasTag('ready'));

@@ -10,8 +10,8 @@ export type StateChange = 'status';
 interface Workhorse {
     queue: (taskId: string, payload: Payload) => Promise<void>;
     getStatus: () => Promise<QueueStatus>;
-    startPoller: (opts?: PollOptions) => Promise<void>;
-    stopPoller: () => Promise<void>;
+    startPoller: (opts?: PollOptions) => void;
+    stopPoller: () => void;
     poll: () => Promise<void>;
     requeue:() => Promise<void>;
     shutdown: () => Promise<QueueStatus>;

@@ -23,7 +23,6 @@ export default defineConfig({
     lib: {
       entry: {
         lib: resolve(__dirname, 'src/main.ts'),
-        demo: resolve(__dirname, 'src/index.html'),
       },
       name: 'workhorse',
       fileName: 'workhorse',
