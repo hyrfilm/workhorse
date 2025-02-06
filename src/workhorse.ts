@@ -1,62 +1,99 @@
 import {getDefaultConfig} from "./config";
-import {Payload, QueueStatus, RunTask, Workhorse, WorkhorseConfig} from "./types";
-import * as errors from "./errors";
-import {createTaskRunner} from "@/TaskRunner.ts";
-import {createDatabase} from "@/db/createDatabase.ts";
-import {createTaskExecutor} from "@/machines/TaskExecutorMachine.ts";
-import {createTaskQueue} from "@/db/TaskQueue.ts";
-import {createExecutorPool} from "@/ExecutorPool.ts";
+import {
+    Payload,
+    QueueStatus,
+    RunTask,
+    Workhorse,
+    WorkhorseConfig
+} from "./types";
+import {createDatabase} from "@/queue/db/createDatabase";
+import {createTaskQueue} from "@/queue/TaskQueue";
+import {createTaskHooks} from "@/executor/TaskHooks";
+import {createTaskExecutor} from "@/executor/TaskExecutor";
+import {createExecutorPool} from "@/executor/TaskExecutorPool";
+import log from "loglevel";
+//import { fromCallback, createActor } from "xstate";
+import { createDispatcher } from "./dispatcher";
+log.setDefaultLevel(log.levels.INFO);
+/*
+const callback = fromCallback(({ }) => {
+    log.debug('rootActor - starting.')
+    // Cleanup function
+    return () => {
+        log.debug('rootActor - starting.')
+    };
+});
 
+const rootActor = createActor(callback, {
+  inspect: (inspectionEvent) => {
+    if (inspectionEvent.type === '@xstate.actor') {
+      console.log(inspectionEvent.actorRef);
+    }
+
+    if (inspectionEvent.type === '@xstate.event') {
+      console.log(inspectionEvent.sourceRef);
+      console.log(inspectionEvent.actorRef);
+      console.log(inspectionEvent.event);
+    }
+
+    if (inspectionEvent.type === '@xstate.snapshot') {
+      console.log(inspectionEvent.actorRef);
+      console.log(inspectionEvent.event);
+      console.log(inspectionEvent.snapshot);
+    }
+  }
+});
+
+const inspect = rootActor.options.inspect;
+*/
 const createDefaultConfig = (): WorkhorseConfig => {
     const defaultConfig = getDefaultConfig();
     defaultConfig.factories = {
         createDatabase: createDatabase,
         createTaskQueue: createTaskQueue,
-        createTaskRunner: createTaskRunner,
+        createHooks: createTaskHooks,
         createTaskExecutor: createTaskExecutor,
         createExecutorPool: createExecutorPool,
     };
     return defaultConfig;
 }
 
-const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>) : Promise<Workhorse> => {
+const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>): Promise<Workhorse> => {
+    //rootActor.start();
+
     const config = { ...createDefaultConfig(), ...options };
 
     const runQuery = await config.factories.createDatabase(config);
     const taskQueue = config.factories.createTaskQueue(config, runQuery);
-    const executorPool = config.factories.createExecutorPool(config, taskQueue, run);
+    const executorPool = config.factories.createExecutorPool(config, taskQueue, run, undefined);
+    const dispatcher = createDispatcher(taskQueue, executorPool, undefined);
 
-    //TODO: Add some good way to inspect / diagnose stuff
-    //taskExecutor.subscribe((snapshot) => log.info(snapshot.value));
-
-    let workhorse = {
-        queue: async(taskId:string, payload: Payload) => {
+    const workhorse: Workhorse = {
+        queue: async (taskId: string, payload: Payload) => {
             await taskQueue.addTask(taskId, payload);
         },
-        getStatus: async() => {
+        getStatus: async () => {
+            //workhorseStatus.update(await taskQueue.getStatus())
             return await taskQueue.getStatus();
         },
-        start: async() => {
-            await executorPool.startAll();
+        startPoller: async () => {
         },
-        poll: async() => {
-            await executorPool.pollAll();
+        stopPoller: async () => {
         },
-        requeue: async() => {
-            await taskQueue.requeue();
+        poll: async () => {
+          await dispatcher.poll();
         },
-        stop: async() => {
-            await executorPool.stopAll();
+        requeue: async () => {
+          await dispatcher.requeue();
         },
-        shutdown: async(): Promise<QueueStatus> => {
-            const finalStatus = await workhorse.getStatus();
-            await executorPool.shutdown();
-            workhorse = errors.deadHorse;
-            return finalStatus;     
+        shutdown: async (): Promise<QueueStatus> => {
+          //TODO:
+          return await dispatcher.getStatus();
         },
-    }
+    };
 
-    await workhorse.start();
+    await dispatcher.startExecutors();
+
     return workhorse;
 }
 

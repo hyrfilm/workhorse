@@ -1,5 +1,3 @@
-import { fetchExample } from "./fetchExample";
-//import { marqueeExample } from "./marqueeExample";
+import { createWorkhorse } from "@/workhorse.ts";
 
-await fetchExample();
-//await marqueeExample();
+export { createWorkhorse };

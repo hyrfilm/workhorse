@@ -1,7 +1,7 @@
-import { createWorkhorse } from './workhorse';
-import { printTask } from '@/tasks';
+import { createWorkhorse } from '../src/workhorse';
+import { printTask } from './tasks';
 import log from "loglevel"
-import { seconds } from './util/time';
+import { seconds } from '../src/util/time';
 
 log.setDefaultLevel(log.levels.INFO);
 

@@ -1,4 +1,4 @@
-import { assertNonPrimitive, Payload } from "@/types";
+import { assertNonPrimitive, Payload } from "../src/types";
 
 const printTask = async (taskId: string, payload: Payload): Promise<void> => {
     assertNonPrimitive(payload);

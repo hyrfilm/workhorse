@@ -1,9 +1,9 @@
-import {createTaskRunner} from '@/TaskRunner';
+import {createTaskHooks} from '@/executor/TaskHooks.ts';
 import {beforeEach, describe, expect, test} from 'vitest';
 import {createDatabaseStub} from './createDatabaseStub';
 import {Payload, RunTask, TaskQueue, TaskState} from '@/types';
 import {ReservationFailed} from "@/errors.ts";
-import { createTaskQueue } from '@/db/TaskQueue';
+import { createTaskQueue } from '@/queue/TaskQueue.ts';
 import {getDefaultConfig} from "@/config.ts";
 import {WorkhorseConfig} from "@/types.ts";
 
@@ -14,7 +14,7 @@ declare module 'vitest' {
     }
   }
 
-describe('TaskRunner', () => {
+describe('TaskHooks', () => {
     beforeEach(async (context) => {
         const config = getDefaultConfig();
         context.config = config;
@@ -37,7 +37,7 @@ describe('TaskRunner', () => {
             await Promise.resolve();
         }
 
-        const taskRunner = createTaskRunner(config, taskQueue, runStub);
+        const taskRunner = createTaskHooks(config, taskQueue, runStub);
         await taskRunner.reserveHook();
         await taskRunner.executeHook();
 
@@ -61,7 +61,7 @@ describe('TaskRunner', () => {
         let queued = await taskQueue.queryTaskCount(TaskState.queued);
         expect(queued).toBe(3);
 
-        const taskRunner = createTaskRunner(config, taskQueue, runStub);
+        const taskRunner = createTaskHooks(config, taskQueue, runStub);
         await taskRunner.reserveHook();
         await taskRunner.executeHook();
         await taskRunner.successHook();
@@ -84,7 +84,7 @@ describe('TaskRunner', () => {
     });
 
     test('no reservation', async ({ config, taskQueue}) => {
-        const taskRunner = createTaskRunner(config, taskQueue, (_p1, _p2) => Promise.resolve());
+        const taskRunner = createTaskHooks(config, taskQueue, (_p1, _p2) => Promise.resolve());
         await taskRunner.reserveHook();
         await taskRunner.reserveHook();
         await taskRunner.reserveHook();

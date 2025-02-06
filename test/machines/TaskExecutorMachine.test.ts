@@ -2,7 +2,7 @@
 
 import { test, expect, describe } from 'vitest';
 import { DirectedGraphNode, getShortestPaths, toDirectedGraph } from '@xstate/graph';
-import { taskExecutorMachine } from '@/machines/TaskExecutorMachine';
+import { taskExecutorMachine } from '@/executor/TaskExecutor';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function assertPathMatches(path: any, name: string) {

@@ -1,17 +1,17 @@
-import { createWorkhorse } from './workhorse';
+import { createWorkhorse } from '../src/workhorse';
 import log from "loglevel"
 import {appendHTMLTask} from "./tasks";
-import {seconds} from "@/util/time.ts";
-import {config} from "@/config.ts";
-import {createTaskQueue} from "@/db/TaskQueue.ts";
-import {createDatabase} from "@/db/createDatabase.ts";
-import {createTaskRunner} from "@/TaskRunner.ts";
-import {createTaskExecutor} from "@/machines/TaskExecutorMachine.ts";
+import {seconds} from "../src/util/time.ts";
+import {config} from "../src/config.ts";
+import {createTaskQueue} from "../src/queue/TaskQueue.ts";
+import {createDatabase} from "../src/queue/db/createDatabase.ts";
+import {createTaskHooks} from "../src/executor/TaskHooks.ts";
+import {createTaskExecutor} from "../src/executor/TaskExecutor.ts";
 
 export async function marqueeExample() {
     log.setDefaultLevel(log.levels.INFO);
 
-    const numTasks = 10000;
+    const numTasks = 1000;
 
     const workhorse = await createWorkhorse(appendHTMLTask);
 
@@ -19,7 +19,7 @@ export async function marqueeExample() {
 
     config.factories.createDatabase = createDatabase;
     config.factories.createTaskQueue = createTaskQueue;
-    config.factories.createTaskRunner = createTaskRunner;
+    config.factories.createHooks = createTaskHooks;
     config.factories.createTaskExecutor = createTaskExecutor;
 
     for(let i=1;i<=numTasks;i++) {
