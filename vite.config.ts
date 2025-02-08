@@ -27,6 +27,9 @@ export default defineConfig({
       name: 'workhorse',
       fileName: 'workhorse',
     },
+    rollupOptions: {
+      external: ['sqlocal'],
+    }
   },
   plugins: [
     tsconfigPaths(),
