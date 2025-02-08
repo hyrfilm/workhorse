@@ -1,9 +1,10 @@
 import {DuplicateStrategy, TaskExecutorStrategy, WorkhorseConfig} from "./types";
 import {millisec, minutes, seconds} from "./util/time";
 
-const config: WorkhorseConfig = {
+const defaults: WorkhorseConfig = {
     concurrency: 1,
     taskExecution: TaskExecutorStrategy.SERIAL,
+    logLevel: 'info',
 
     poll: {
         auto: false,
@@ -29,7 +30,7 @@ const config: WorkhorseConfig = {
 };
 
 const defaultOptions = () => {
-    return structuredClone(config);
+    return structuredClone(defaults);
 }
 
-export { defaultOptions, config };
+export { defaultOptions };

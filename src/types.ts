@@ -1,4 +1,5 @@
 import { InspectionEvent, Observer } from "xstate";
+import { LogLevel } from "./util/logging";
 
 type SqlExecutor = (queryTemplate: TemplateStringsArray | string, ...params: unknown[]) => Promise<QueryResult[]>;
 type QueryResult = Record<string, string | number | null>[];
@@ -35,6 +36,7 @@ interface WorkhorseConfig {
     duplicates: DuplicateStrategy;
     concurrency: number,
     taskExecution: TaskExecutorStrategy,
+    logLevel: LogLevel,
 
     poll: {
         auto: boolean,

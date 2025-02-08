@@ -11,12 +11,13 @@ import {
     Workhorse,
     WorkhorseConfig
 } from "./types";
-import log from "loglevel";
 import { createDispatcher } from "./dispatcher";
 import {createPeriodicJob, PeriodicJob } from "@/util/periodic.ts";
-log.setDefaultLevel(log.levels.INFO);
+import {setLogLevel} from "@/util/logging.ts";
 
 const initialize = async(runTask: RunTask, config: WorkhorseConfig, factories: Factories): Promise<[TaskQueue, CommandDispatcher, PeriodicJob]>  => {
+    setLogLevel(config.logLevel);
+
     const database = await factories.createDatabase(config);
     const taskQueue = factories.createTaskQueue(config, database);
     const taskExecutors: SingleTaskExecutor[] = [];
@@ -36,6 +37,10 @@ const initialize = async(runTask: RunTask, config: WorkhorseConfig, factories: F
         }
     }
     const pollingJob = createPeriodicJob(poller, config.poll.interval);
+
+    if (config.poll.auto) {
+        pollingJob.start();
+    }
 
     return [taskQueue, dispatcher, pollingJob];
 }
