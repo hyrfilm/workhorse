@@ -1,4 +1,10 @@
-import {assertTaskQueueRow, Payload, QueryResult, TaskRow, TaskState} from '@/types.ts';
+import {
+  assertTaskQueueRow,
+  Payload,
+  QueryResult,
+  TaskRow,
+  TaskState,
+} from '@/types.ts';
 
 const schema = `
 CREATE TABLE task_status (
@@ -35,28 +41,32 @@ completed_at TIMESTAMP);
 `;
 
 function toTaskRow(dbRow: unknown): TaskRow {
-    assertTaskQueueRow(dbRow);
-    return {id: dbRow.id, taskId: dbRow.task_id, payload: JSON.parse(dbRow.task_payload) as Payload} as TaskRow;
+  assertTaskQueueRow(dbRow);
+  return {
+    id: dbRow.id,
+    taskId: dbRow.task_id,
+    payload: JSON.parse(dbRow.task_payload) as Payload,
+  } as TaskRow;
 }
 
-function addTaskQuery(taskId: string, payload: Payload) {
-    const jsonPayload = JSON.stringify(payload);
-    return `
+function addTaskQuery(taskId: string, payload: Payload): string {
+  const jsonPayload = JSON.stringify(payload);
+  return `
         INSERT INTO task_queue (task_id, task_payload, status_id)
         VALUES ('${taskId}', '${jsonPayload}', ${TaskState.queued});
     `;
 }
 
-function addTaskIfNotExistsQuery(taskId: string, payload: Payload) {
-    const jsonPayload = JSON.stringify(payload);
-    return `
+function addTaskIfNotExistsQuery(taskId: string, payload: Payload): string {
+  const jsonPayload = JSON.stringify(payload);
+  return `
         INSERT OR IGNORE INTO task_queue (task_id, task_payload, status_id)
         VALUES ('${taskId}', '${jsonPayload}', ${TaskState.queued});
     `;
 }
 
-function reserveTaskAtomic() {
-    return `
+function reserveTaskAtomic(): string {
+  return `
       UPDATE task_queue
       SET
         status_id = ${TaskState.executing},
@@ -70,10 +80,10 @@ function reserveTaskAtomic() {
       )
       RETURNING *;
     `;
-  }
+}
 
-function reserveTaskQuery() {
-    return `
+function reserveTaskQuery(): string {
+  return `
         SELECT * FROM task_queue
         WHERE status_id = ${TaskState.queued} -- 'queued'
         ORDER BY id ASC
@@ -81,16 +91,16 @@ function reserveTaskQuery() {
     `;
 }
 
-function updateTaskStatusQuery(rowId: number, status: number) {
-    return `
+function updateTaskStatusQuery(rowId: number, status: number): string {
+  return `
         UPDATE task_queue
         SET status_id = ${status}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ${rowId};
     `;
 }
 
-function taskSuccessQuery(rowId: number) {
-    return `
+function taskSuccessQuery(rowId: number): string {
+  return `
         UPDATE task_queue
         SET status_id = ${TaskState.successful},
         completed_at = CURRENT_TIMESTAMP, 
@@ -99,8 +109,8 @@ function taskSuccessQuery(rowId: number) {
     `;
 }
 
-function taskFailureQuery(rowId: number) {
-    return `
+function taskFailureQuery(rowId: number): string {
+  return `
         UPDATE task_queue
         SET status_id = ${TaskState.failed},
         updated_at = CURRENT_TIMESTAMP
@@ -108,8 +118,8 @@ function taskFailureQuery(rowId: number) {
     `;
 }
 
-function requeueFailuresQuery() {
-    return `
+function requeueFailuresQuery(): string {
+  return `
         UPDATE task_queue
         SET status_id = ${TaskState.queued},
         updated_at = CURRENT_TIMESTAMP
@@ -117,24 +127,37 @@ function requeueFailuresQuery() {
     `;
 }
 
-function getSingleStatusQuery(status: number) {
-    return `
+function getSingleStatusQuery(status: number): string {
+  return `
         SELECT COUNT(*) FROM task_queue
         WHERE status_id = ${status};
     `;
 }
 
-function getAllStatusQuery() {
-    return `SELECT status_id, COUNT(*) AS count
+function getAllStatusQuery(): string {
+  return `SELECT status_id, COUNT(*) AS count
             FROM task_queue
             GROUP BY status_id;
     `;
 }
 
 interface StatusQuery extends QueryResult {
-    status_id: number,
-    count: number
+  status_id: number;
+  count: number;
 }
 
-export { schema, addTaskQuery, addTaskIfNotExistsQuery, reserveTaskQuery, reserveTaskAtomic, updateTaskStatusQuery, taskSuccessQuery, taskFailureQuery, requeueFailuresQuery, getSingleStatusQuery, getAllStatusQuery, toTaskRow };
+export {
+  schema,
+  addTaskQuery,
+  addTaskIfNotExistsQuery,
+  reserveTaskQuery,
+  reserveTaskAtomic,
+  updateTaskStatusQuery,
+  taskSuccessQuery,
+  taskFailureQuery,
+  requeueFailuresQuery,
+  getSingleStatusQuery,
+  getAllStatusQuery,
+  toTaskRow,
+};
 export type { StatusQuery };

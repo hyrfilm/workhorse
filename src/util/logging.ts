@@ -1,10 +1,10 @@
-import log from "loglevel";
+import log from 'loglevel';
 
-type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
+type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
-const setLogLevel = (level: LogLevel) => {
-    log.setLevel(level);
-}
+const setLogLevel = (level: LogLevel): void => {
+  log.setLevel(level);
+};
 
 export { setLogLevel };
 export type { LogLevel };
