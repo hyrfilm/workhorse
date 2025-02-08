@@ -25,11 +25,14 @@ interface CommandDispatcher {
   startExecutors: () => Promise<QueueStatus>;
   stopExecutors: () => Promise<QueueStatus>;
   poll: () => Promise<QueueStatus>;
+  log: (s: string) => void;
   shutdown: () => Promise<QueueStatus>;
 }
 
 interface WorkhorsePlugin {
+  name: string;
   onStart(dispatcher: CommandDispatcher): void;
+  onStop(): void;
 }
 
 export type Inspector =

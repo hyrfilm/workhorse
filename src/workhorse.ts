@@ -15,9 +15,10 @@ import {
 } from './types';
 import { createDispatcher } from './dispatcher';
 import { createPeriodicJob, PeriodicJob } from '@/util/periodic.ts';
-import { setLogLevel } from '@/util/logging.ts';
+import { log, error, setLogLevel } from '@/util/logging.ts';
+import { createPluginHandler, PluginHandler } from '@/pluginHandler.ts';
 
-type RuntimeConfig = [TaskQueue, CommandDispatcher, PeriodicJob];
+type RuntimeConfig = [TaskQueue, CommandDispatcher, PeriodicJob, PluginHandler];
 
 const initialize = async (runTask: RunTask, config: WorkhorseConfig, factories: Factories): Promise<RuntimeConfig> => {
 
@@ -46,7 +47,13 @@ const initialize = async (runTask: RunTask, config: WorkhorseConfig, factories: 
     pollingJob.start();
   }
 
-  return [taskQueue, dispatcher, pollingJob];
+  config.plugins.forEach((plugin) => {
+    plugin.onStart(dispatcher);
+  });
+
+  const pluginHandler = createPluginHandler();
+
+  return [taskQueue, dispatcher, pollingJob, pluginHandler];
 };
 
 const createWorkhorse = async (
@@ -63,7 +70,7 @@ const createWorkhorse = async (
     runtimeConfig.options,
     runtimeConfig.factories
   );
-  const [taskQueue, dispatcher, poller] = result;
+  const [taskQueue, dispatcher, poller, pluginHandler] = result;
 
   const workhorse: Workhorse = {
     queue: async (taskId: string, payload: Payload) => {
@@ -87,10 +94,22 @@ const createWorkhorse = async (
     shutdown: async (): Promise<QueueStatus> => {
       poller.stop();
       return await dispatcher.shutdown();
+      pluginHandler.stopPlugins();
     },
   };
 
   await dispatcher.startExecutors();
+
+  try {
+    pluginHandler.startPlugins(runtimeConfig.options, dispatcher);
+  } catch(e) {
+    error('An exception occurred when starting plugins.')
+    if (e instanceof Error) {
+      error(e.message);
+      error(e.stack);
+    }
+    throw new Error('Failed to start');
+  }
 
   return workhorse;
 };

@@ -1,4 +1,5 @@
 import {createWorkhorse} from '../src/workhorse';
+import {PauseWhenOffline} from '../src/plugins/PauseWhenOffline.ts'
 import log from "loglevel"
 import {appendHTMLTask} from "./tasks";
 import {seconds} from "../src/util/time.ts";
@@ -15,7 +16,7 @@ export async function marqueeExample() {
 
     const numTasks = 1000;
 
-    const options = { taskExecution: TaskExecutorStrategy.PARALLEL, concurrency: 10 };
+    const options = { taskExecution: TaskExecutorStrategy.PARALLEL, concurrency: 10, plugins: [new PauseWhenOffline()] };
     const workhorse = await createWorkhorse(appendHTMLTask, options);
     window.workhorse = workhorse;
     log.info("Adding tasks...");
