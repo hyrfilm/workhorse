@@ -1,10 +1,10 @@
-import {createTaskHooks} from '@/executor/TaskHooks.ts';
+import {createExecutorHooks} from '@/executor/hooks.ts';
 import {beforeEach, describe, expect, test} from 'vitest';
 import {createDatabaseStub} from './createDatabaseStub';
 import {Payload, RunTask, TaskQueue, TaskState} from '@/types';
 import {ReservationFailed} from "@/errors.ts";
 import { createTaskQueue } from '@/queue/TaskQueue.ts';
-import {getDefaultConfig} from "@/config.ts";
+import {defaultOptions} from "@/config.ts";
 import {WorkhorseConfig} from "@/types.ts";
 
 declare module 'vitest' {
@@ -16,14 +16,15 @@ declare module 'vitest' {
 
 describe('TaskHooks', () => {
     beforeEach(async (context) => {
-        const config = getDefaultConfig();
-        context.config = config;
+        const config = defaultOptions();
+        //const factories = { ... defaultFactories };
+        const factories = {
+            createDatabase: createDatabaseStub,
+            createTaskQueue: createTaskQueue,
+        };
 
-        config.factories.createDatabase = createDatabaseStub;
-        config.factories.createTaskQueue = createTaskQueue;
-
-        const runQuery = await config.factories.createDatabase(config);
-        context.taskQueue = config.factories.createTaskQueue(config, runQuery);
+        const runQuery = await factories.createDatabase();
+        context.taskQueue = factories.createTaskQueue(config, runQuery);
     
         await context.taskQueue.addTask('task1', {'dude': 'where'});
         await context.taskQueue.addTask('task2', {'is': 'my'});
@@ -37,7 +38,7 @@ describe('TaskHooks', () => {
             await Promise.resolve();
         }
 
-        const taskRunner = createTaskHooks(config, taskQueue, runStub);
+        const taskRunner = createExecutorHooks(config, taskQueue, runStub);
         await taskRunner.reserveHook();
         await taskRunner.executeHook();
 
@@ -61,7 +62,7 @@ describe('TaskHooks', () => {
         let queued = await taskQueue.queryTaskCount(TaskState.queued);
         expect(queued).toBe(3);
 
-        const taskRunner = createTaskHooks(config, taskQueue, runStub);
+        const taskRunner = createExecutorHooks(config, taskQueue, runStub);
         await taskRunner.reserveHook();
         await taskRunner.executeHook();
         await taskRunner.successHook();
@@ -84,7 +85,7 @@ describe('TaskHooks', () => {
     });
 
     test('no reservation', async ({ config, taskQueue}) => {
-        const taskRunner = createTaskHooks(config, taskQueue, (_p1, _p2) => Promise.resolve());
+        const taskRunner = createExecutorHooks(config, taskQueue, (_p1, _p2) => Promise.resolve());
         await taskRunner.reserveHook();
         await taskRunner.reserveHook();
         await taskRunner.reserveHook();

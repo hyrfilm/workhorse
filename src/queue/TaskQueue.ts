@@ -1,5 +1,5 @@
-// @ts-nocheck
-// TODO: Fix temporary ts-ignore
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+// TODO: Fix switch statement so this eslint-disable can be removed
 import {
     Payload,
     QueueStatus,
@@ -9,7 +9,7 @@ import {
     DuplicateStrategy,
     WorkhorseConfig,
     RunQuery,
-    assertTaskRow
+    assertTaskRow, QueryResult
 } from '@/types.ts';
 import {
     addTaskQuery,
@@ -20,7 +20,7 @@ import {
     requeueFailuresQuery,
     addTaskIfNotExistsQuery,
     reserveTaskAtomic as reserveTaskAtomicQuery,
-    getAllStatusQuery,
+    getAllStatusQuery, StatusQuery,
 } from './db/sql';
 import {DuplicateTaskError, UnreachableError} from "@/errors.ts";
 
@@ -91,7 +91,7 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
         getStatus: async (): Promise<QueueStatus> => {
             const query = getAllStatusQuery();
             const records = await sql(query);
-            
+
             // Start with default counts
             const queueStatus: QueueStatus = {
                 queued: 0,
@@ -102,10 +102,7 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
         
             // Map records to QueueStatus
             records.forEach((record) => {
-                if (typeof record.status_id !== "number" || typeof record.count !== "number") {
-                    throw new UnreachableError(record as never, `Invalid record structure: ${JSON.stringify(record)}`);
-                }
-
+                assertStatusQuery(record);
                 switch (record.status_id) {
                     case TaskState.queued:
                         queueStatus.queued = record.count;
@@ -129,6 +126,11 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
     };
 
     return taskQueue;
-};
+}
+
+function assertStatusQuery(maybeQueueStatus: QueryResult): asserts maybeQueueStatus is StatusQuery {
+    if (!("status_id" in maybeQueueStatus)) throw Error(`Expected status_id in ${JSON.stringify(maybeQueueStatus)}`);
+    if (!("count" in maybeQueueStatus)) throw Error(`Expected count in ${JSON.stringify(maybeQueueStatus)}`);
+}
 
 export { createTaskQueue };

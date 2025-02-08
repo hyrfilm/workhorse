@@ -7,11 +7,11 @@ import {
 } from "xstate";
 
 import {
-  Payload,
-  WorkhorseStatus,
-  TaskQueue,
-  TaskExecutorPool,
-  QueueStatus,
+    Payload,
+    WorkhorseStatus,
+    TaskQueue,
+    TaskExecutorPool,
+    QueueStatus, CommandDispatcher,
 } from "@/types.ts";
 
 enum TaskQueueCommand {
@@ -23,11 +23,12 @@ enum TaskQueueCommand {
 enum ExecutorCommand {
     Start = "executors.start",
     Stop = "executors.stop",
-    Poll = "executors.poll"
+    Poll = "executors.poll",
+    Shutdown = "executors.shutdown",
 }
 
 enum MachineCommand {
-    Reset = "reset"
+    Reset = "reset",
 }
 
 type ResetEvent = { type: MachineCommand.Reset };
@@ -37,6 +38,7 @@ type GetStatusEvent = { type: TaskQueueCommand.GetStatus };
 type StartExecutorsEvent = { type: ExecutorCommand.Start };
 type StopExecutorsEvent = { type: ExecutorCommand.Stop };
 type PollEvent = { type: ExecutorCommand.Poll };
+type ShutdownEvent = { type: ExecutorCommand.Shutdown };
 
 type MachineEvent = 
     | ResetEvent 
@@ -45,7 +47,8 @@ type MachineEvent =
     | GetStatusEvent 
     | StartExecutorsEvent 
     | StopExecutorsEvent 
-    | PollEvent;
+    | PollEvent
+    | ShutdownEvent;
 
 
 type DispatcherContext = {
@@ -69,6 +72,9 @@ const dispatchHook = fromPromise(
                     await queue.addTask(event.taskId, event.payload);
                 }
                 break;
+            case TaskQueueCommand.GetStatus:
+                status = await queue.getStatus();
+                break;
             case TaskQueueCommand.Requeue:
                 await queue.requeue();
                 break;
@@ -81,9 +87,9 @@ const dispatchHook = fromPromise(
             case ExecutorCommand.Poll:
                 await executors.pollAll();
                 break;
-            case TaskQueueCommand.GetStatus:
+            case ExecutorCommand.Shutdown:
+                await executors.shutdown();
                 status = await queue.getStatus();
-                break;
         }
 
         return status;
@@ -118,12 +124,8 @@ const createDispatcherMachine = () => {
       ready: {
         tags: ["ready"],
         on: {
-            [TaskQueueCommand.GetStatus]: { target: "dispatching" },
-            [TaskQueueCommand.Queue]: { target: "dispatching" },
-            [TaskQueueCommand.Requeue]: { target: "dispatching" },
-            [ExecutorCommand.Start]: { target: "dispatching" },
-            [ExecutorCommand.Stop]: { target: "dispatching" },
-            [ExecutorCommand.Poll]: { target: "dispatching" },
+            "taskQueue.*": { target: "dispatching" },
+            "executors.*": { target: "dispatching" },
             "*": { target: "unexpectedEvent" },
         },
       },
@@ -169,7 +171,7 @@ const createDispatcherMachine = () => {
   });
 };
 
-const createDispatcher = (queue: TaskQueue, executors: TaskExecutorPool) => {
+const createDispatcher = (queue: TaskQueue, executors: TaskExecutorPool): CommandDispatcher => {
     const machine = createDispatcherMachine();
     const actor = createActor(machine, { input: { queue, executors } });
 
@@ -190,7 +192,12 @@ const createDispatcher = (queue: TaskQueue, executors: TaskExecutorPool) => {
         requeue: () => execute({ type: TaskQueueCommand.Requeue }),
         startExecutors: () => execute({ type: ExecutorCommand.Start }),
         stopExecutors: () => execute({ type: ExecutorCommand.Stop }),
-        poll: () => execute({ type: ExecutorCommand.Poll })
+        poll: () => execute({ type: ExecutorCommand.Poll }),
+        shutdown: async () => {
+            const finalStatus = await execute({type: ExecutorCommand.Shutdown});
+            actor.stop();
+            return finalStatus;
+        },
     };
 };
 

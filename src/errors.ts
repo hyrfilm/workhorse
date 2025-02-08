@@ -1,5 +1,6 @@
 class ReservationFailed extends Error {}
 class DuplicateTaskError extends Error {}
+class NotImplementedError extends Error {}
 
 class UnreachableError extends Error {
     constructor(nvr: never, message: string) {
@@ -8,10 +9,4 @@ class UnreachableError extends Error {
     }
 }
 
-class WorkhorseShutdownError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = "WorkhorseShutdownError";
-    }
-}
-export { ReservationFailed, DuplicateTaskError, UnreachableError, WorkhorseShutdownError };
+export { ReservationFailed, DuplicateTaskError, UnreachableError, NotImplementedError };

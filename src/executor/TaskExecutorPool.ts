@@ -1,21 +1,13 @@
 import {
     TaskExecutorStrategy,
-    RunTask,
     SingleTaskExecutor,
     TaskExecutorPool,
-    TaskQueue,
-    WorkhorseConfig,
-    Inspector
+    Inspector, WorkhorseConfig,
 } from "@/types.ts";
 import {UnreachableError} from "@/errors.ts";
 
-const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: RunTask, inspect: Inspector): TaskExecutorPool => {
-    let executors: SingleTaskExecutor[] = [];
-    for (let i = 0; i < config.concurrency; i++) {
-        const taskRunner = config.factories.createHooks(config, taskQueue, run);
-        const executor = config.factories.createTaskExecutor(config, taskRunner, inspect);
-        executors.push(executor);
-    }
+const createExecutorPool = (config: WorkhorseConfig, taskExecutors: SingleTaskExecutor[], _inspect?: Inspector): TaskExecutorPool => {
+    let executors = [...taskExecutors];
 
     const executorPool = {
         startAll: async () => {
@@ -52,7 +44,7 @@ const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: 
                 case TaskExecutorStrategy.DETACHED:
                     return executorPool.pollNoWait();
                 default:
-                    throw new UnreachableError(config.taskExecution as never, `Unrecognized poll strategy: ${config.taskExecution}`);
+                    throw new UnreachableError(config.taskExecution, `Unrecognized poll strategy: ${config.taskExecution}`);
             }
         },
         pollSerial: async () => {
@@ -70,7 +62,7 @@ const createExecutorPool = (config: WorkhorseConfig, taskQueue: TaskQueue, run: 
                     const preWait = config.poll.pre.wait;
                     // Instead of `await executor.waitFor(preWait)`, push the promise
                     tasks.push(
-                        executor.waitFor(preWait).then(() => executor.poll())
+                        executor.waitFor(preWait).then(() => { executor.poll(); })
                     );
                 }
             }

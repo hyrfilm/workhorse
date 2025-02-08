@@ -4,7 +4,7 @@ import {createWorkhorse} from "@/workhorse";
 import {expect, test, vi} from "vitest";
 import {createDatabaseStub} from "./db/createDatabaseStub";
 import {createTaskQueue} from "@/queue/TaskQueue.ts";
-import {createTaskHooks} from "@/executor/TaskHooks.ts";
+import {createExecutorHooks} from "@/executor/hooks.ts";
 import {createTaskExecutor} from "@/executor/TaskExecutor";
 import {createExecutorPool} from "@/executor/TaskExecutorPool.ts";
 
@@ -15,17 +15,14 @@ vi.mock("@/db/createDatabase.ts", () => ({
 // Returns a workhorse instance that's identical to a regular one except that it
 // runs on node.js with an in-memory sqlite db.
 async function createWorkhorseFixture(runTask: RunTask, options?: Partial<WorkhorseConfig>) {
-    const workhorse = await createWorkhorse(runTask, {
-        ...options,
-        factories: {
-            createDatabase: createDatabaseStub,
-            createTaskQueue: createTaskQueue,
-            createHooks: createTaskHooks,
-            createTaskExecutor: createTaskExecutor,
-            createExecutorPool: createExecutorPool,
-        },
-    });
-    return workhorse;
+    const overrides = {
+        createDatabase: createDatabaseStub,
+        createTaskQueue: createTaskQueue,
+        createHooks: createExecutorHooks,
+        createTaskExecutor: createTaskExecutor,
+        createExecutorPool: createExecutorPool,
+    };
+    return await createWorkhorse(runTask, options, overrides);
 }
 
 test("Tasks are processed atomically in the order they were added (high concurrency)", async () => {

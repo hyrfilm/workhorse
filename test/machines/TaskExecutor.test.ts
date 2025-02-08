@@ -1,4 +1,4 @@
-import {createTaskHooks} from '@/executor/TaskHooks.ts';
+import {createExecutorHooks} from '@/executor/hooks.ts';
 import {beforeEach, describe, expect, test} from 'vitest';
 import {DuplicateStrategy, Payload, SingleTaskExecutor, TaskQueue, WorkhorseConfig} from '@/types';
 import {createTaskQueue} from '@/queue/TaskQueue.ts';
@@ -6,7 +6,7 @@ import {createDatabaseStub} from 'test/db/createDatabaseStub';
 import {createTaskExecutor} from '@/executor/TaskExecutor';
 import { DuplicateTaskError } from '@/errors';
 import {TaskHooks} from "@/types.ts";
-import {getDefaultConfig} from "@/config.ts";
+import {defaultOptions} from "@/config.ts";
 
 declare module 'vitest' {
     export interface TestContext {
@@ -23,11 +23,7 @@ declare module 'vitest' {
 
 describe('TaskExecutor', () => {
     beforeEach(async (context) => {
-        const cfg = structuredClone(getDefaultConfig());
-        cfg.factories.createDatabase = createDatabaseStub;
-        cfg.factories.createTaskQueue = createTaskQueue;
-        cfg.factories.createHooks = createTaskHooks;
-        cfg.factories.createTaskExecutor = createTaskExecutor;
+        const cfg = defaultOptions();
 
         // We could use XState's simulated clocks instead, but here we just set
         // the backoff to not wait at all so that we don't need to wait for failing tasks
@@ -54,7 +50,7 @@ describe('TaskExecutor', () => {
 
         const runQuery = await createDatabaseStub();
         context.taskQueue = createTaskQueue(cfg, runQuery);
-        context.taskHooks = createTaskHooks(cfg, context.taskQueue, runTask);
+        context.taskHooks = createExecutorHooks(cfg, context.taskQueue, runTask);
         context.taskExecutor = createTaskExecutor(cfg, context.taskHooks);
         context.taskExecutor.start();
     });

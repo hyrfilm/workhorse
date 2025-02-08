@@ -1,11 +1,8 @@
 import { InspectionEvent, Observer } from "xstate";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SqlExecutor = (queryTemplate: TemplateStringsArray | string, ...params: unknown[]) => Promise<QueryResult[]>;
 type QueryResult = Record<string, string | number | null>[];
 type RunQuery = (query: string) => Promise<QueryResult[]>;
-
-export type StateChange = 'status';
 
 interface Workhorse {
     queue: (taskId: string, payload: Payload) => Promise<void>;
@@ -15,6 +12,20 @@ interface Workhorse {
     poll: () => Promise<void>;
     requeue:() => Promise<void>;
     shutdown: () => Promise<QueueStatus>;
+}
+
+interface CommandDispatcher {
+    getStatus: () => Promise<QueueStatus>;
+    queue: (taskId: string, payload: Payload) => Promise<QueueStatus>,
+    requeue: () => Promise<QueueStatus>,
+    startExecutors: () => Promise<QueueStatus>,
+    stopExecutors: () => Promise<QueueStatus>,
+    poll: () => Promise<QueueStatus>,
+    shutdown: () => Promise<QueueStatus>,
+}
+
+interface WorkhorsePlugin {
+    onStart(dispatcher: CommandDispatcher): void;
 }
 
 export type Inspector = Observer<InspectionEvent> | ((inspectionEvent: InspectionEvent) => void) | undefined;
@@ -38,21 +49,16 @@ interface WorkhorseConfig {
             rowId: boolean
         },
     },
-    factories: {
-        createDatabase: createDatabaseFunc
-        createTaskQueue: createTaskQueueFunc
-        createHooks: createTaskRunnerFunc
-        createTaskExecutor: createTaskExecutorFunc
-        createExecutorPool: createExecutorPoolFunc
-    }
+    plugins: WorkhorsePlugin[],
 }
 
-type createDatabaseFunc = (config: WorkhorseConfig) => Promise<RunQuery>;
-type createTaskQueueFunc = (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
-type createTaskRunnerFunc = (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskHooks;
-type createTaskExecutorFunc = (config: WorkhorseConfig, taskRunner: TaskHooks, inspect?: Inspector) => SingleTaskExecutor;
-type createExecutorPoolFunc = (config: WorkhorseConfig, queue: TaskQueue, runTask: RunTask, inspect?: Inspector) => TaskExecutorPool;
-
+interface Factories {
+    createDatabase: (config: WorkhorseConfig) => Promise<RunQuery>;
+    createTaskQueue: (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
+    createExecutorHooks: (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskHooks
+    createTaskExecutor: (config: WorkhorseConfig, taskRunner: TaskHooks, inspect?: Inspector) => SingleTaskExecutor;
+    createExecutorPool: (config: WorkhorseConfig, executors: SingleTaskExecutor[], inspect?: Inspector) => TaskExecutorPool;
+}
 
 enum TaskState {
     queued      = 1,
@@ -86,17 +92,6 @@ enum DuplicateStrategy {
     IGNORE = 'ignore',
     // if a task is added with an id that already throw an error
     FORBID = 'forbid',
-}
-
-enum TaskOrderingStrategy {
-    // Tasks are almost always delivered in the order they are added to the queue.
-    BEST_EFFORT = 'best effort',
-
-    // Tasks are always delivered in the order they are added.
-    // Note that this has performance implications if adding many tasks in quick succession.
-    // Also note that if this is important, failing tasks are retried before queued tasks.
-    // TODO: Not implemented yet
-    GUARANTEED = 'guaranteed ordering'
 }
 
 enum TaskExecutorStrategy {
@@ -165,6 +160,20 @@ interface QueueStatus {
     failed: number;
 }
 
+interface TaskQueueRow extends Record<string, number | string> {
+    id: number,
+    task_id: string,
+    task_payload: string,
+}
+
+function assertTaskQueueRow(maybeTaskQueueRow: unknown): asserts maybeTaskQueueRow is TaskQueueRow {
+    if (typeof maybeTaskQueueRow !== "object" || maybeTaskQueueRow==null) throw new Error('Invalid TaskQueue row - is null');
+    const row = maybeTaskQueueRow as Record<string, unknown>;
+    if (typeof row.id !== "number") throw new Error(`Invalid row TaskQueue row - missing "id"`);
+    if (typeof row.task_id !== "string") throw new Error(`Invalid row TaskQueue row - missing "task_id"`);
+    if (typeof row.task_payload !== "string") throw new Error(`Invalid row TaskQueue row - missing "payload"`);
+}
+
 function assertTaskRow(maybeTaskRow: object | Record<string, string | number> | undefined): asserts maybeTaskRow is TaskRow {
     if (maybeTaskRow==undefined) {
         throw new Error('Invalid TaskRow (missing)');
@@ -186,7 +195,5 @@ function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
     }
 }
 
-
-export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, Workhorse, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskHooks, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, BackoffSettings, PollOptions };
-export type { createDatabaseFunc, createTaskQueueFunc, createTaskRunnerFunc, createTaskExecutorFunc, createExecutorPoolFunc };
-export { TaskState, DuplicateStrategy, TaskOrderingStrategy, TaskExecutorStrategy, RequeueStrategy, assertTaskRow, assertNonPrimitive };
+export type { SqlExecutor, QueryResult, RunQuery, RowId, TaskRow, Workhorse, WorkhorseStatus, TaskQueue, QueueStatus, Payload, RunTask, TaskHooks, TaskExecutorPool, SingleTaskExecutor, WorkhorseConfig, BackoffSettings, PollOptions, CommandDispatcher, WorkhorsePlugin, Factories };
+export { TaskState, DuplicateStrategy, TaskExecutorStrategy, RequeueStrategy, assertTaskQueueRow, assertTaskRow, assertNonPrimitive };

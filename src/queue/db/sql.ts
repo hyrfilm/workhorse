@@ -1,4 +1,4 @@
-import {Payload, TaskRow, TaskState} from '@/types.ts';
+import {assertTaskQueueRow, Payload, QueryResult, TaskRow, TaskState} from '@/types.ts';
 
 const schema = `
 CREATE TABLE task_status (
@@ -35,18 +35,8 @@ completed_at TIMESTAMP);
 `;
 
 function toTaskRow(dbRow: unknown): TaskRow {
-    if (dbRow==undefined) {
-        throw new Error('Did not get task from db');
-    }
-    if (typeof dbRow!=="object") {
-        throw new Error(`Got unexpected task type from db: ${dbRow}`);
-    }
-    const dbTask = dbRow as Record<string, any>;
-    if ("id" in dbTask && "task_id" in dbTask && "task_payload" in dbTask) {
-        return { id: dbTask.id, taskId: dbTask.task_id, payload: JSON.parse(dbTask.task_payload) };
-    } else {
-        throw new Error(`Unexpected task row from db: ${dbTask}`);
-    }
+    assertTaskQueueRow(dbRow);
+    return {id: dbRow.id, taskId: dbRow.task_id, payload: JSON.parse(dbRow.task_payload) as Payload} as TaskRow;
 }
 
 function addTaskQuery(taskId: string, payload: Payload) {
@@ -141,4 +131,10 @@ function getAllStatusQuery() {
     `;
 }
 
+interface StatusQuery extends QueryResult {
+    status_id: number,
+    count: number
+}
+
 export { schema, addTaskQuery, addTaskIfNotExistsQuery, reserveTaskQuery, reserveTaskAtomic, updateTaskStatusQuery, taskSuccessQuery, taskFailureQuery, requeueFailuresQuery, getSingleStatusQuery, getAllStatusQuery, toTaskRow };
+export type { StatusQuery };

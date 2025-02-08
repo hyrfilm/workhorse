@@ -8,7 +8,6 @@ async function createSchema(sql: SqlExecutor): Promise<void> {
 };
 
 //TODO: This just one big dummy implementation
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const createDatabase = async (_config: WorkhorseConfig): Promise<RunQuery> => {
     const { deleteDatabaseFile } = new SQLocal('database.sqlite3');
     await deleteDatabaseFile();

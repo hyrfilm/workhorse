@@ -1,48 +1,52 @@
-import {getDefaultConfig} from "./config";
+import {defaultOptions} from "./config";
+import {defaultFactories } from "@/defaultFactories.ts";
+
 import {
+    CommandDispatcher,
+    Factories,
     Payload, PollOptions,
     QueueStatus,
-    RunTask,
+    RunTask, SingleTaskExecutor,
+    TaskQueue,
     Workhorse,
     WorkhorseConfig
 } from "./types";
-import {createDatabase} from "@/queue/db/createDatabase";
-import {createTaskQueue} from "@/queue/TaskQueue";
-import {createTaskHooks} from "@/executor/TaskHooks";
-import {createTaskExecutor} from "@/executor/TaskExecutor";
-import {createExecutorPool} from "@/executor/TaskExecutorPool";
 import log from "loglevel";
 import { createDispatcher } from "./dispatcher";
-import {createPeriodicJob } from "@/util/periodic.ts";
+import {createPeriodicJob, PeriodicJob } from "@/util/periodic.ts";
 log.setDefaultLevel(log.levels.INFO);
 
-const createDefaultConfig = (): WorkhorseConfig => {
-    const defaultConfig = getDefaultConfig();
-    defaultConfig.factories = {
-        createDatabase: createDatabase,
-        createTaskQueue: createTaskQueue,
-        createHooks: createTaskHooks,
-        createTaskExecutor: createTaskExecutor,
-        createExecutorPool: createExecutorPool,
-    };
-    return defaultConfig;
-}
-
-const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>): Promise<Workhorse> => {
-    const config = { ...createDefaultConfig(), ...options };
-
-    const runQuery = await config.factories.createDatabase(config);
-    const taskQueue = config.factories.createTaskQueue(config, runQuery);
-    const executorPool = config.factories.createExecutorPool(config, taskQueue, run);
+const initialize = async(runTask: RunTask, config: WorkhorseConfig, factories: Factories): Promise<[TaskQueue, CommandDispatcher, PeriodicJob]>  => {
+    const database = await factories.createDatabase(config);
+    const taskQueue = factories.createTaskQueue(config, database);
+    const taskExecutors: SingleTaskExecutor[] = [];
+    for (let i = 0; i < config.concurrency; i++) {
+        const taskHooks = factories.createExecutorHooks(config, taskQueue, runTask);
+        const executor = factories.createTaskExecutor(config, taskHooks);
+        taskExecutors.push(executor);
+    }
+    const executorPool = factories.createExecutorPool(config, taskExecutors);
     const dispatcher = createDispatcher(taskQueue, executorPool);
     const poller = async() => {
         await dispatcher.poll();
         const status = await dispatcher.getStatus();
+        // TODO: This should be configurable
         if (status.queued===0 && status.failed>0) {
             await dispatcher.requeue();
         }
     }
-    let pollingTask = createPeriodicJob(poller, config.poll.interval);
+    const pollingJob = createPeriodicJob(poller, config.poll.interval);
+
+    return [taskQueue, dispatcher, pollingJob];
+}
+
+const createWorkhorse = async (run: RunTask, options: Partial<WorkhorseConfig> = {}, factories: Partial<Factories> = {}): Promise<Workhorse> => {
+    const config = {
+        options: {...defaultOptions(), ...options },
+        factories: { ...defaultFactories(), ...factories },
+    };
+    const result = await initialize(run, config.options, config.factories);
+    const [ taskQueue, dispatcher, poller ] = result;
 
     const workhorse: Workhorse = {
         queue: async (taskId: string, payload: Payload) => {
@@ -52,10 +56,10 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
             return await taskQueue.getStatus();
         },
         startPoller: (_pollOptions?: PollOptions) => {
-            pollingTask.start();
+            poller.start();
         },
         stopPoller: () => {
-            pollingTask.stop();
+            poller.stop();
         },
         poll: async () => {
           await dispatcher.poll();
@@ -64,15 +68,12 @@ const createWorkhorse = async (run: RunTask, options?: Partial<WorkhorseConfig>)
           await dispatcher.requeue();
         },
         shutdown: async (): Promise<QueueStatus> => {
-          //TODO:
-          return await dispatcher.getStatus();
+            poller.stop();
+            return await dispatcher.shutdown();
         },
     };
 
     await dispatcher.startExecutors();
-    if (config.poll.auto) {
-        workhorse.startPoller();
-    }
 
     return workhorse;
 }
