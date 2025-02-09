@@ -8,10 +8,7 @@ interface PeriodicJob {
   stop(): void;
 }
 
-const createPeriodicJob = (
-  func: () => Promise<void>,
-  interval: number
-): PeriodicJob => {
+const createPeriodicJob = (func: () => Promise<void>, interval: number): PeriodicJob => {
   const actor = createActor(
     machine.provide({
       actors: { runJob: fromPromise(func) },

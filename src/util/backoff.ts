@@ -12,10 +12,7 @@ const createBackoff = (config: BackoffSettings): Backoff => {
   return {
     getBackoff: () => currentBackoff,
     increaseBackoff: () => {
-      currentBackoff = Math.min(
-        currentBackoff * config.multiplier,
-        config.maxTime
-      );
+      currentBackoff = Math.min(currentBackoff * config.multiplier, config.maxTime);
     },
     resetBackoff: () => {
       currentBackoff = config.initial;

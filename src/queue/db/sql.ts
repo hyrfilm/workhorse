@@ -1,10 +1,4 @@
-import {
-  assertTaskQueueRow,
-  Payload,
-  QueryResult,
-  TaskRow,
-  TaskState,
-} from '@/types.ts';
+import { assertTaskQueueRow, Payload, QueryResult, TaskRow, TaskState } from '@/types.ts';
 
 const schema = `
 -- When a task returns something other than undefined it is turned into JSON and stored here

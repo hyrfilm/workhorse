@@ -15,14 +15,17 @@ import {
 } from './types';
 import { createDispatcher } from './dispatcher';
 import { createPeriodicJob, PeriodicJob } from '@/util/periodic.ts';
-import { log, error, setLogLevel } from '@/util/logging.ts';
+import { error, setLogLevel } from '@/util/logging.ts';
 import { createPluginHandler, PluginHandler } from '@/pluginHandler.ts';
-import { aw } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
+import { waitForTaskResult } from '@/util/tasks.ts';
 
 type RuntimeConfig = [TaskQueue, CommandDispatcher, PeriodicJob, PluginHandler];
 
-const initialize = async (runTask: RunTask, config: WorkhorseConfig, factories: Factories): Promise<RuntimeConfig> => {
-
+const initialize = async (
+  runTask: RunTask,
+  config: WorkhorseConfig,
+  factories: Factories
+): Promise<RuntimeConfig> => {
   setLogLevel(config.logLevel);
   const database = await factories.createDatabase(config);
   const taskQueue = factories.createTaskQueue(config, database);
@@ -66,21 +69,24 @@ const createWorkhorse = async (
     options: { ...defaultOptions(), ...options },
     factories: { ...defaultFactories(), ...factories },
   };
-  const result = await initialize(
-    run,
-    runtimeConfig.options,
-    runtimeConfig.factories
-  );
+  const result = await initialize(run, runtimeConfig.options, runtimeConfig.factories);
   const [taskQueue, dispatcher, poller, pluginHandler] = result;
 
   const workhorse: Workhorse = {
     queue: async (taskId: string, payload: Payload) => {
       await taskQueue.addTask(taskId, payload);
     },
+    run: async (taskId: string, payload: Payload): Promise<Payload | undefined> => {
+      const resultPromise = waitForTaskResult(taskId);
+      await workhorse.queue(taskId, payload);
+      //TODO: Use a better way of handling non-awaits
+      workhorse.poll().catch(error);
+      return resultPromise;
+    },
     getStatus: async () => {
       return await taskQueue.getStatus();
     },
-    getTaskResult: async (taskId: string): Promise<Payload|undefined> => {
+    getTaskResult: async (taskId: string): Promise<Payload | undefined> => {
       return await taskQueue.getTaskResult(taskId);
     },
     startPoller: (_pollOptions?: PollOptions) => {
@@ -106,11 +112,10 @@ const createWorkhorse = async (
 
   try {
     pluginHandler.startPlugins(runtimeConfig.options, dispatcher);
-  } catch(e) {
-    error('An exception occurred when starting plugins.')
+  } catch (e) {
+    error('An exception occurred when starting plugins.');
     if (e instanceof Error) {
       error(e.message);
-      error(e.stack);
     }
     throw new Error('Failed to start');
   }

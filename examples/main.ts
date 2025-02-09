@@ -1,5 +1,3 @@
-//import { fetchExample } from "./fetchExample";
-import { marqueeExample } from "./marqueeExample";
+import { taskResultExample } from "./taskResultExampleSerial";
 
-//await fetchExample();
-await marqueeExample();
+await taskResultExample();

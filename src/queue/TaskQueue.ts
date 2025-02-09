@@ -84,9 +84,9 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
       const query = `select result from task_result where id='${taskId}';`;
       const maybeRecord = await sql(query);
       console.log(JSON.stringify(maybeRecord));
-      if (maybeRecord.length>0) {
+      if (maybeRecord.length > 0) {
         const result = maybeRecord[0]['result'];
-        if (typeof result==='string') {
+        if (typeof result === 'string') {
           return JSON.parse(result);
         } else {
           return undefined;
@@ -152,9 +152,7 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
   return taskQueue;
 }
 
-function assertStatusQuery(
-  maybeQueueStatus: QueryResult
-): asserts maybeQueueStatus is StatusQuery {
+function assertStatusQuery(maybeQueueStatus: QueryResult): asserts maybeQueueStatus is StatusQuery {
   if (!('status_id' in maybeQueueStatus))
     throw Error(`Expected status_id in ${JSON.stringify(maybeQueueStatus)}`);
   if (!('count' in maybeQueueStatus))

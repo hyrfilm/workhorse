@@ -1,11 +1,6 @@
 import { createBackoff } from '@/util/backoff.ts';
 import { createActor, fromPromise, setup, waitFor } from 'xstate';
-import {
-  WorkhorseConfig,
-  TaskHooks,
-  SingleTaskExecutor,
-  Inspector,
-} from '@/types.ts';
+import { WorkhorseConfig, TaskHooks, SingleTaskExecutor, Inspector } from '@/types.ts';
 
 const reserveTask = async (): Promise<void> => {};
 const executeTask = async (): Promise<void> => {};
@@ -165,9 +160,7 @@ export function createTaskExecutor(
         }
       }
       const unreachable: never = snapshot.value as never;
-      throw new Error(
-        `Unexpected state: ${unreachable} ${JSON.stringify(snapshot.tags)}`
-      );
+      throw new Error(`Unexpected state: ${unreachable} ${JSON.stringify(snapshot.tags)}`);
     },
   };
 

@@ -16,7 +16,7 @@ const printTask = async (taskId: string, payload: Payload): Promise<void> => {
     console.info(`[${taskId}]: ${msg}`);
 }
 
-const jsonRequestTask = async (taskId: string, payload: Payload): Promise<void> => {
+const jsonRequestTask = async (taskId: string, payload: Payload): Promise<Payload | undefined> => {
     assertNonPrimitive(payload);
 
     let { url, body, method } = payload;
@@ -37,8 +37,7 @@ const jsonRequestTask = async (taskId: string, payload: Payload): Promise<void> 
     if (!response.ok) {
         throw new Error(`[${taskId}]: response status: ${statusCode}`); 
     }
-    const jsonResponse = await response.json() as object;
-    console.info(`[${taskId}]: ${statusCode} ${JSON.stringify(jsonResponse)}`);
+    return await response.json();
 }
 
 const appendHTMLTask = async (taskId: string, payload: Payload): Promise<void> => {

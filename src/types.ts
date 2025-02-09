@@ -10,6 +10,7 @@ type RunQuery = (query: string) => Promise<QueryResult[]>;
 
 interface Workhorse {
   queue: (taskId: string, payload: Payload) => Promise<void>;
+  run: (taskId: string, payload: Payload) => Promise<Payload | undefined>;
   getStatus: () => Promise<QueueStatus>;
   getTaskResult: (taskId: string) => Promise<Payload | undefined>;
   startPoller: (opts?: PollOptions) => void;
@@ -62,11 +63,7 @@ interface WorkhorseConfig {
 interface Factories {
   createDatabase: (config: WorkhorseConfig) => Promise<RunQuery>;
   createTaskQueue: (config: WorkhorseConfig, runQuery: RunQuery) => TaskQueue;
-  createExecutorHooks: (
-    config: WorkhorseConfig,
-    queue: TaskQueue,
-    run: RunTask
-  ) => TaskHooks;
+  createExecutorHooks: (config: WorkhorseConfig, queue: TaskQueue, run: RunTask) => TaskHooks;
   createTaskExecutor: (
     config: WorkhorseConfig,
     taskRunner: TaskHooks,
@@ -147,9 +144,7 @@ interface SingleTaskExecutor {
   start(): void;
   stop(): void;
   poll(): void;
-  waitFor(
-    tag: 'ready' | 'busy' | 'canStop' | 'stopped' | 'executed'
-  ): Promise<void>;
+  waitFor(tag: 'ready' | 'busy' | 'canStop' | 'stopped' | 'executed'): Promise<void>;
   waitIf(tag: 'busy' | 'executing'): Promise<void>;
   getStatus(): 'stopped' | 'started' | 'critical'; //TODO: Move the types from the machine into this file to make more DRY
 }
@@ -189,14 +184,11 @@ interface TaskQueueRow extends Record<string, number | string> {
   task_payload: string;
 }
 
-function assertTaskQueueRow(
-  maybeTaskQueueRow: unknown
-): asserts maybeTaskQueueRow is TaskQueueRow {
+function assertTaskQueueRow(maybeTaskQueueRow: unknown): asserts maybeTaskQueueRow is TaskQueueRow {
   if (typeof maybeTaskQueueRow !== 'object' || maybeTaskQueueRow == null)
     throw new Error('Invalid TaskQueue row - is null');
   const row = maybeTaskQueueRow as Record<string, unknown>;
-  if (typeof row.id !== 'number')
-    throw new Error(`Invalid row TaskQueue row - missing "id"`);
+  if (typeof row.id !== 'number') throw new Error(`Invalid row TaskQueue row - missing "id"`);
   if (typeof row.task_id !== 'string')
     throw new Error(`Invalid row TaskQueue row - missing "task_id"`);
   if (typeof row.task_payload !== 'string')
@@ -221,11 +213,7 @@ function assertTaskRow(
 }
 
 function assertNonPrimitive(payload: Payload): asserts payload is JSONObject {
-  if (
-    typeof payload !== 'object' ||
-    payload === null ||
-    Array.isArray(payload)
-  ) {
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
     throw new TypeError('Payload must be a non-primitive JSON object.');
   }
 }

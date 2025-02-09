@@ -9,6 +9,8 @@ import {
 } from '@/types.ts';
 import log from 'loglevel';
 import { ReservationFailed } from '@/errors.ts';
+import { Emitter } from '@/events/emitter.ts';
+import { taskIdSuccess } from '@/events/helpers.ts';
 
 const createExecutorHooks = (
   _config: WorkhorseConfig,
@@ -16,6 +18,7 @@ const createExecutorHooks = (
   run: RunTask
 ): TaskHooks => {
   let task: undefined | TaskRow = undefined;
+  let taskResult: undefined | Payload;
   return {
     reserveHook: async (): Promise<void> => {
       log.debug(`Reserving task...`);
@@ -31,16 +34,13 @@ const createExecutorHooks = (
     executeHook: async (): Promise<void> => {
       assertTaskRow(task);
       log.debug(`Task running: ${task.taskId}`);
-      const maybePayload = await run(task.taskId, task.payload);
-      if (maybePayload) {
-        const payload: Payload = JSON.stringify(maybePayload);
-        await queue.updateTaskResult(task.taskId, payload);
-      }
+      taskResult = await run(task.taskId, task.payload);
     },
     successHook: async (): Promise<void> => {
       assertTaskRow(task);
       log.debug(`Task successful: ${task.taskId}`);
       await queue.taskSuccessful(task);
+      Emitter.emit(taskIdSuccess(task.taskId), taskResult);
     },
     failureHook: async (): Promise<void> => {
       assertTaskRow(task);

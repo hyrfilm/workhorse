@@ -178,10 +178,7 @@ const createDispatcherMachine = () => {
   });
 };
 
-const createDispatcher = (
-  queue: TaskQueue,
-  executors: TaskExecutorPool
-): CommandDispatcher => {
+const createDispatcher = (queue: TaskQueue, executors: TaskExecutorPool): CommandDispatcher => {
   const machine = createDispatcherMachine();
   const actor = createActor(machine, { input: { queue, executors } });
 
@@ -199,12 +196,14 @@ const createDispatcher = (
   return {
     getStatus: () => execute({ type: TaskQueueCommand.GetStatus }),
     queue: (taskId: string, payload: Payload) =>
-    execute({ type: TaskQueueCommand.Queue, taskId, payload }),
+      execute({ type: TaskQueueCommand.Queue, taskId, payload }),
     requeue: () => execute({ type: TaskQueueCommand.Requeue }),
     startExecutors: () => execute({ type: ExecutorCommand.Start }),
     stopExecutors: () => execute({ type: ExecutorCommand.Stop }),
     poll: () => execute({ type: ExecutorCommand.Poll }),
-    log: (s: string): void => { log(s) },
+    log: (s: string): void => {
+      log(s);
+    },
     shutdown: async () => {
       const finalStatus = await execute({ type: ExecutorCommand.Shutdown });
       actor.stop();

@@ -1,8 +1,4 @@
-import {
-  DuplicateStrategy,
-  TaskExecutorStrategy,
-  WorkhorseConfig,
-} from './types';
+import { DuplicateStrategy, TaskExecutorStrategy, WorkhorseConfig } from './types';
 import { millisec, minutes, seconds } from './util/time';
 
 const defaults: WorkhorseConfig = {
