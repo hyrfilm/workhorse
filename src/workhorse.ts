@@ -17,6 +17,7 @@ import { createDispatcher } from './dispatcher';
 import { createPeriodicJob, PeriodicJob } from '@/util/periodic.ts';
 import { log, error, setLogLevel } from '@/util/logging.ts';
 import { createPluginHandler, PluginHandler } from '@/pluginHandler.ts';
+import { aw } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
 
 type RuntimeConfig = [TaskQueue, CommandDispatcher, PeriodicJob, PluginHandler];
 
@@ -78,6 +79,9 @@ const createWorkhorse = async (
     },
     getStatus: async () => {
       return await taskQueue.getStatus();
+    },
+    getTaskResult: async (taskId: string): Promise<Payload|undefined> => {
+      return await taskQueue.getTaskResult(taskId);
     },
     startPoller: (_pollOptions?: PollOptions) => {
       poller.start();

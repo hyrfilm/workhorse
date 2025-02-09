@@ -5,6 +5,7 @@ import {
   TaskRow,
   TaskHooks,
   WorkhorseConfig,
+  Payload,
 } from '@/types.ts';
 import log from 'loglevel';
 import { ReservationFailed } from '@/errors.ts';
@@ -30,7 +31,11 @@ const createExecutorHooks = (
     executeHook: async (): Promise<void> => {
       assertTaskRow(task);
       log.debug(`Task running: ${task.taskId}`);
-      await run(task.taskId, task.payload);
+      const maybePayload = await run(task.taskId, task.payload);
+      if (maybePayload) {
+        const payload: Payload = JSON.stringify(maybePayload);
+        await queue.updateTaskResult(task.taskId, payload);
+      }
     },
     successHook: async (): Promise<void> => {
       assertTaskRow(task);

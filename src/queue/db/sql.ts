@@ -7,6 +7,9 @@ import {
 } from '@/types.ts';
 
 const schema = `
+-- When a task returns something other than undefined it is turned into JSON and stored here
+CREATE TABLE task_result (id VARCHAR(36) PRIMARY KEY, result TEXT);
+
 CREATE TABLE task_status (
     id INTEGER PRIMARY KEY,                 -- Status ID (e.g., 1 for 'queued')
     name VARCHAR(16) UNIQUE NOT NULL,       -- Status name (e.g., 'queued', 'executing')

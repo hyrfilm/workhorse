@@ -11,6 +11,7 @@ type RunQuery = (query: string) => Promise<QueryResult[]>;
 interface Workhorse {
   queue: (taskId: string, payload: Payload) => Promise<void>;
   getStatus: () => Promise<QueueStatus>;
+  getTaskResult: (taskId: string) => Promise<Payload | undefined>;
   startPoller: (opts?: PollOptions) => void;
   stopPoller: () => void;
   poll: () => Promise<void>;
@@ -99,6 +100,8 @@ interface TaskQueue {
   addTask(taskId: string, payload: Payload): Promise<void>;
   reserveTask(): Promise<TaskRow | undefined>;
   taskSuccessful(taskRow: TaskRow): Promise<void>;
+  updateTaskResult(taskId: string, payload: Payload): Promise<void>;
+  getTaskResult(taskId: string): Promise<Payload | undefined>;
   taskFailed(taskRow: TaskRow): Promise<void>;
   requeue: () => Promise<void>;
   queryTaskCount(status: TaskState): Promise<number>;
@@ -165,7 +168,7 @@ type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
 type Payload = JSONValue;
 
-type RunTask = (taskId: string, payload: Payload) => Promise<void>;
+type RunTask = (taskId: string, payload: Payload) => Promise<Payload | undefined>;
 
 interface BackoffSettings {
   initial: number;
