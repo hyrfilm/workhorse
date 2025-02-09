@@ -80,21 +80,6 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
       const query = `insert into task_result (id, result) values ('${taskId}', '${result}');)`;
       await sql(query);
     },
-    getTaskResult: async (taskId: string): Promise<Payload | undefined> => {
-      const query = `select result from task_result where id='${taskId}';`;
-      const maybeRecord = await sql(query);
-      console.log(JSON.stringify(maybeRecord));
-      if (maybeRecord.length > 0) {
-        const result = maybeRecord[0]['result'];
-        if (typeof result === 'string') {
-          return JSON.parse(result);
-        } else {
-          return undefined;
-        }
-      } else {
-        return undefined;
-      }
-    },
     queryTaskCount: async (status: TaskState): Promise<number> => {
       const query = getSingleStatusQuery(status);
       const records = await sql(query);

@@ -9,7 +9,7 @@ import {
   QueueStatus,
   RunTask,
   SingleTaskExecutor,
-  TaskQueue,
+  TaskQueue, TaskResult,
   Workhorse,
   WorkhorseConfig,
 } from './types';
@@ -76,7 +76,7 @@ const createWorkhorse = async (
     queue: async (taskId: string, payload: Payload) => {
       await taskQueue.addTask(taskId, payload);
     },
-    run: async (taskId: string, payload: Payload): Promise<Payload | undefined> => {
+    run: async (taskId: string, payload: Payload): Promise<TaskResult> => {
       const resultPromise = waitForTaskResult(taskId);
       await workhorse.queue(taskId, payload);
       //TODO: Use a better way of handling non-awaits
@@ -85,9 +85,6 @@ const createWorkhorse = async (
     },
     getStatus: async () => {
       return await taskQueue.getStatus();
-    },
-    getTaskResult: async (taskId: string): Promise<Payload | undefined> => {
-      return await taskQueue.getTaskResult(taskId);
     },
     startPoller: (_pollOptions?: PollOptions) => {
       poller.start();

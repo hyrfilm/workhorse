@@ -1,7 +1,7 @@
 import {createExecutorHooks} from '@/executor/hooks.ts';
 import {beforeEach, describe, expect, test} from 'vitest';
 import {createDatabaseStub} from './createDatabaseStub';
-import {Payload, RunTask, TaskQueue, TaskState} from '@/types';
+import {Payload, RunTask, TaskQueue, TaskResult, TaskState} from '@/types';
 import {ReservationFailed} from "@/errors.ts";
 import { createTaskQueue } from '@/queue/TaskQueue.ts';
 import {defaultOptions} from "@/config.ts";
@@ -33,9 +33,9 @@ describe('TaskHooks', () => {
 
     test('reserve & run', async ({ config, taskQueue }) => {
         const actualTasks: any[] = [];
-        const runStub: RunTask = async (taskId: string, payload: Payload) => {
+        const runStub: RunTask = async (taskId: string, payload: Payload): Promise<TaskResult> => {
             actualTasks.push({taskId, payload});
-            await Promise.resolve();
+            return Promise.resolve(undefined);
         }
 
         const taskRunner = createExecutorHooks(config, taskQueue, runStub);
@@ -56,7 +56,8 @@ describe('TaskHooks', () => {
     });
 
     test('reserve & run - success / failure', async ({ config, taskQueue }) => {
-        const runStub: RunTask = async (_taskId: string, _payload: Payload) => {
+        const runStub: RunTask = async (_taskId: string, _payload: Payload): Promise<TaskResult> => {
+            return Promise.resolve(undefined);
         }
 
         let queued = await taskQueue.queryTaskCount(TaskState.queued);
@@ -85,7 +86,7 @@ describe('TaskHooks', () => {
     });
 
     test('no reservation', async ({ config, taskQueue}) => {
-        const taskRunner = createExecutorHooks(config, taskQueue, (_p1, _p2) => Promise.resolve());
+        const taskRunner = createExecutorHooks(config, taskQueue, (_p1, _p2): Promise<TaskResult> => Promise.resolve(undefined));
         await taskRunner.reserveHook();
         await taskRunner.reserveHook();
         await taskRunner.reserveHook();

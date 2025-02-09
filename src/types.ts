@@ -10,9 +10,8 @@ type RunQuery = (query: string) => Promise<QueryResult[]>;
 
 interface Workhorse {
   queue: (taskId: string, payload: Payload) => Promise<void>;
-  run: (taskId: string, payload: Payload) => Promise<Payload | undefined>;
+  run: (taskId: string, payload: Payload) => Promise<TaskResult>;
   getStatus: () => Promise<QueueStatus>;
-  getTaskResult: (taskId: string) => Promise<Payload | undefined>;
   startPoller: (opts?: PollOptions) => void;
   stopPoller: () => void;
   poll: () => Promise<void>;
@@ -98,7 +97,6 @@ interface TaskQueue {
   reserveTask(): Promise<TaskRow | undefined>;
   taskSuccessful(taskRow: TaskRow): Promise<void>;
   updateTaskResult(taskId: string, payload: Payload): Promise<void>;
-  getTaskResult(taskId: string): Promise<Payload | undefined>;
   taskFailed(taskRow: TaskRow): Promise<void>;
   requeue: () => Promise<void>;
   queryTaskCount(status: TaskState): Promise<number>;
@@ -122,7 +120,7 @@ enum TaskExecutorStrategy {
 }
 
 enum RequeueStrategy {
-  IMMEDIATE = 'immedidate',
+  IMMEDIATE = 'immediate',
   DEFERRED = 'deferred',
 }
 
@@ -162,8 +160,9 @@ type JSONArray = JSONValue[];
 type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
 type Payload = JSONValue;
+type TaskResult = Payload | undefined;
 
-type RunTask = (taskId: string, payload: Payload) => Promise<Payload | undefined>;
+type RunTask = (taskId: string, payload: Payload) => Promise<TaskResult>;
 
 interface BackoffSettings {
   initial: number;
@@ -230,6 +229,7 @@ export type {
   QueueStatus,
   Payload,
   RunTask,
+  TaskResult,
   TaskHooks,
   TaskExecutorPool,
   SingleTaskExecutor,

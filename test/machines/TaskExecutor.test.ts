@@ -1,6 +1,6 @@
 import {createExecutorHooks} from '@/executor/hooks.ts';
 import {beforeEach, describe, expect, test} from 'vitest';
-import {DuplicateStrategy, Payload, SingleTaskExecutor, TaskQueue, WorkhorseConfig} from '@/types';
+import {DuplicateStrategy, Payload, SingleTaskExecutor, TaskQueue, TaskResult, WorkhorseConfig} from '@/types';
 import {createTaskQueue} from '@/queue/TaskQueue.ts';
 import {createDatabaseStub} from 'test/db/createDatabaseStub';
 import {createTaskExecutor} from '@/executor/TaskExecutor';
@@ -36,7 +36,7 @@ describe('TaskExecutor', () => {
         // task ids placed here will fail
         context.failIds = new Set();
 
-        const runTask = async (taskId: string, payload: Payload): Promise<void> => {
+        const runTask = async (taskId: string, payload: Payload): Promise<TaskResult> => {
             const successful = true;
             const failed = false;
             if(context.failIds.has(taskId)) {
@@ -44,7 +44,7 @@ describe('TaskExecutor', () => {
                 await Promise.reject(new Error(`task ${taskId} failed`));
             } else {
                 context.executedTasks.push([taskId, payload, successful]);
-                await Promise.resolve();
+                return Promise.resolve(undefined);
             }
         }
 

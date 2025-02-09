@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import {Payload, TaskExecutorStrategy, RunTask, WorkhorseConfig} from "@/types";
+import {Payload, TaskExecutorStrategy, RunTask, WorkhorseConfig, TaskResult} from "@/types";
 import {createWorkhorse} from "@/workhorse";
 import {expect, test, vi} from "vitest";
 import {createDatabaseStub} from "./db/createDatabaseStub";
@@ -35,19 +35,19 @@ test("Tasks are processed atomically in the order they were added (high concurre
       fc.integer({ min: 20, max: 100 }),
       async (scheduler, taskIds, concurrency) => {
         const executedTasks: string[] = [];
-        const runTaskPromises: Promise<void>[] = [];
+        const runTaskPromises: Promise<TaskResult>[] = [];
         const expectedIds = [...taskIds].map((id) => `${id}`);
 
         // Wrap `runTask` with scheduler and promise tracking
-        const runTask = async (taskId: string, _payload: Payload): Promise<void> => {
+        const runTask = async (taskId: string, _payload: Payload): Promise<TaskResult> => {
           const taskPromise = scheduler.schedule(
-            new Promise<void>((resolve) => {
+            new Promise<TaskResult>((resolve) => {
               executedTasks.push(taskId);
-              resolve();
+              resolve(undefined);
             })
           );
           runTaskPromises.push(taskPromise); // Track each task's promise
-          await taskPromise;
+          return await taskPromise;
         };
 
         const workhorse = await createWorkhorseFixture(runTask, { concurrency })
@@ -88,9 +88,9 @@ test("Tasks are processed atomically in the order they were added (low concurren
         const actualIds: string[] = [];
 
         // Wrap `runTask` with scheduler and promise tracking
-        const runTask = async (taskId: string, _payload: Payload): Promise<void> => {
+        const runTask = async (taskId: string, _payload: Payload): Promise<TaskResult> => {
           actualIds.push(taskId);
-          return Promise.resolve();
+          return Promise.resolve(undefined);
         };
 
         // Create the workhorse instance
@@ -205,7 +205,7 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
     // Helper to create a deterministic task runner using an infinite stream of probabilities
     const createTaskFunction = (taskProbStream: IterableIterator<number>) => {
         const executedTaskSet = new Set<string>();
-        return async (taskId: string, _payload: Payload): Promise<void> => {
+        return async (taskId: string, _payload: Payload): Promise<TaskResult> => {
             // Use the next value from the probability stream
             const taskFailureProb = taskProbStream.next().value;
             const currentFailureProb = taskProbStream.next().value*2.0; // make the task have a slight bias towards success
@@ -222,6 +222,7 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
                 //console.log(`${taskId}`, 'succcess: ', taskFailureProb, currentFailureProb);
             }
             executedTaskSet.add(taskId);
+            return Promise.resolve(undefined);
         };
     };
 
@@ -231,14 +232,14 @@ test("Fuzzing - tasks are processed atomically with retries until all succeed", 
             fc.noShrink(fc.infiniteStream(fc.integer({ min: 0, max: 100 }))), // Infinite stream of probabilities
             fc.integer({ min: 30, max: 30 }), // Concurrency level
             async (taskIds, probabilityStream, concurrency) => {
-                const totalTasks = taskIds.map((id) => `${id}`);
+                const totalTasks = taskIds.map((id) => id);
                 const runTask = createTaskFunction(probabilityStream);
 
                 const workhorse = await createWorkhorseFixture(runTask, { concurrency, taskExecution: TaskExecutorStrategy.DETACHED });
 
                 // Queue tasks
                 const queuePromises = taskIds.map((id) =>
-                    workhorse.queue(`${id}`, {})
+                    workhorse.queue(id, {})
                 );
                 await Promise.all(queuePromises);
 
