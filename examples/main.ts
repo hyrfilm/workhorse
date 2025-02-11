@@ -1,3 +1,3 @@
-import { taskResultExample } from "./taskResultExampleSerial";
+import { taskResultExample } from "./taskResultExampleParallel";
 
 await taskResultExample();

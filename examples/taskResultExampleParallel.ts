@@ -15,7 +15,7 @@ export async function taskResultExample() {
 
     const numTasks = 1000;
 
-    const workhorse = await createWorkhorse(tasks.jsonRequestTask, { taskExecution: TaskExecutorStrategy.DETACHED, concurrency: 25, poll: { auto: true, pre: { wait: 'ready'}, interval: millisec(100)} } );
+    const workhorse = await createWorkhorse(tasks.jsonRequestTask, { taskExecution: TaskExecutorStrategy.DETACHED, concurrency: 100, poll: { auto: true, pre: { wait: 'ready'}, interval: millisec(100)} } );
 
     const container = document.getElementById('tasks');
     

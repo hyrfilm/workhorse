@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@statelyai/inspect": "^0.4.0",
+    "eventemitter3": "^5.0.1",
     "loglevel": "^1.9.2",
     "xstate": "^5.19.0"
   },
