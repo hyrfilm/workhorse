@@ -76,10 +76,6 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
       const query = requeueFailuresQuery();
       await sql(query);
     },
-    updateTaskResult: async (taskId: string, result: Payload): Promise<void> => {
-      const query = `insert into task_result (id, result) values ('${taskId}', '${result}');)`;
-      await sql(query);
-    },
     queryTaskCount: async (status: TaskState): Promise<number> => {
       const query = getSingleStatusQuery(status);
       const records = await sql(query);

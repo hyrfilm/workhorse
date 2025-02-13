@@ -1,22 +1,24 @@
-// ConnectivityMonitor.ts
-
-import { CommandDispatcher, WorkhorsePlugin } from '@/types';
-import { dummyDispatcher } from './util/dummyDispatcher';
+import { WorkhorsePlugin, PluginConfig } from '@/types';
+import { Emitter, Actions } from '@events';
+import * as stubs from './util/stubs.ts';
 
 class PauseWhenOffline implements WorkhorsePlugin {
-  private online;
-  private dispatcher;
   public name = 'PauseWhenOffline';
+
+  private online;
+  private emitter = stubs.emitter;
+  private log = stubs.log;
 
   constructor() {
     this.online = true;
-    this.dispatcher = dummyDispatcher;
+    this.emitter = Emitter;
   }
 
-  onStart = (dispatcher: CommandDispatcher): void => {
-    this.online = navigator.onLine;
-    this.dispatcher = dispatcher;
+  onStart = (config: PluginConfig): void => {
+    this.log = config.log;
+    this.emitter = config.emitter;
 
+    this.online = navigator.onLine;
     if (!this.online) {
       this.handleOffline();
     }
@@ -31,13 +33,13 @@ class PauseWhenOffline implements WorkhorsePlugin {
   };
 
   handleOnline = (): void => {
-    this.dispatcher.log('Online - processing queue');
-    this.dispatcher.startExecutors().catch(this.dispatcher.log);
+    this.log('info', 'Online - processing queue');
+    this.emitter.emit(Actions.Executors.Start);
   };
 
   handleOffline = (): void => {
-    this.dispatcher.log('Offline - pause processing queue');
-    this.dispatcher.stopExecutors().catch(this.dispatcher.log);
+    this.log('info', 'Offline - pause processing queue');
+    this.emitter.emit(Actions.Executors.Stop);
   };
 }
 

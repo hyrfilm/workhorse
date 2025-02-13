@@ -1,6 +1,5 @@
+import { LogLevel } from '@types';
 import loglevel from 'loglevel';
-
-type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
 const prefix = '[workhorse]: ';
 

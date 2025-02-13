@@ -26,6 +26,8 @@
       "@/db/*": ["src/queue/db/*"],
       "@/executor/*": ["src/executor/*"],
       "@/util/*": ["src/util/*"],
+      "@events": ["src/events"],
+      "@types": ["src/types"],
     }
   },
   "include": ["src", "test"]

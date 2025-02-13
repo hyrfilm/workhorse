@@ -9,15 +9,15 @@ import {
   QueueStatus,
   RunTask,
   SingleTaskExecutor,
-  TaskQueue, TaskResult,
+  TaskQueue,
   Workhorse,
   WorkhorseConfig,
-} from './types';
+} from '@types';
 import { createDispatcher } from './dispatcher';
 import { createPeriodicJob, PeriodicJob } from '@/util/periodic.ts';
 import { error, setLogLevel } from '@/util/logging.ts';
 import { createPluginHandler, PluginHandler } from '@/pluginHandler.ts';
-import { waitForTaskResult } from '@/util/tasks.ts';
+import { waitForReturnValue } from '@events';
 
 type RuntimeConfig = [TaskQueue, CommandDispatcher, PeriodicJob, PluginHandler];
 
@@ -27,6 +27,7 @@ const initialize = async (
   factories: Factories
 ): Promise<RuntimeConfig> => {
   setLogLevel(config.logLevel);
+
   const database = await factories.createDatabase(config);
   const taskQueue = factories.createTaskQueue(config, database);
   const taskExecutors: SingleTaskExecutor[] = [];
@@ -37,6 +38,10 @@ const initialize = async (
   }
   const executorPool = factories.createExecutorPool(config, taskExecutors);
   const dispatcher = createDispatcher(taskQueue, executorPool);
+
+  const pluginHandler = createPluginHandler();
+  pluginHandler.startPlugins(config, dispatcher);
+
   const poller = async () => {
     await dispatcher.poll();
     const status = await dispatcher.getStatus();
@@ -50,12 +55,6 @@ const initialize = async (
   if (config.poll.auto) {
     pollingJob.start();
   }
-
-  config.plugins.forEach((plugin) => {
-    plugin.onStart(dispatcher);
-  });
-
-  const pluginHandler = createPluginHandler();
 
   return [taskQueue, dispatcher, pollingJob, pluginHandler];
 };
@@ -76,8 +75,8 @@ const createWorkhorse = async (
     queue: async (taskId: string, payload: Payload) => {
       await taskQueue.addTask(taskId, payload);
     },
-    run: async (taskId: string, payload: Payload): Promise<TaskResult> => {
-      const resultPromise = waitForTaskResult(taskId);
+    run: async (taskId: string, payload: Payload): Promise<unknown> => {
+      const resultPromise = waitForReturnValue(taskId);
       await workhorse.queue(taskId, payload);
       //TODO: Use a better way of handling non-awaits
       workhorse.poll().catch(error);

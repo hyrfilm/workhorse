@@ -2,13 +2,12 @@ import {createWorkhorse} from "../src/workhorse.ts";
 import * as tasks from "./tasks.ts";
 import {millisec, seconds, sleep} from "../src/util/time.ts";
 import { log, setLogLevel } from "../src/util/logging.ts";
-import { Emitter } from '../src/events/emitter.ts';
 import { v4 as uuidv4 } from 'uuid';
 import { TaskExecutorStrategy } from "../src/types.ts";
 
 // This example some downloading tasks 
 // and renders the result of them as they come in
-export async function taskResultExample() {
+export async function run() {
     setLogLevel("info");
 
     log("Creating workhorse instance...");    
@@ -36,7 +35,7 @@ export async function taskResultExample() {
         const id = index + 1;
         const url = `https://jsonplaceholder.typicode.com/photos/${id}`;
         const method = 'GET';
-        const result = workhorse.run(taskId, { url, method }).then((result) => document.getElementById(taskId)!.textContent+= ' ' + JSON.stringify(result)).catch((e) => console.error);
+        const result = workhorse.run(taskId, { url, method }).then((result) => document.getElementById(taskId)!.textContent+= ' ' + JSON.stringify(result)).catch(console.error);
         document.getElementById(taskId)!.textContent+= ' ' + JSON.stringify(result)
     });
 

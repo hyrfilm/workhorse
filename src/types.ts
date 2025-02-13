@@ -1,5 +1,9 @@
 import { InspectionEvent, Observer } from 'xstate';
-import { LogLevel } from './util/logging';
+import { Emitter } from '@/events/emitter';
+
+type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
+
+type EmitLog = (logLevel: LogLevel, ...msg: string[]) => void;
 
 type SqlExecutor = (
   queryTemplate: TemplateStringsArray | string,
@@ -10,7 +14,7 @@ type RunQuery = (query: string) => Promise<QueryResult[]>;
 
 interface Workhorse {
   queue: (taskId: string, payload: Payload) => Promise<void>;
-  run: (taskId: string, payload: Payload) => Promise<TaskResult>;
+  run: (taskId: string, payload: Payload) => Promise<unknown>;
   getStatus: () => Promise<QueueStatus>;
   startPoller: (opts?: PollOptions) => void;
   stopPoller: () => void;
@@ -30,9 +34,14 @@ interface CommandDispatcher {
   shutdown: () => Promise<QueueStatus>;
 }
 
+interface PluginConfig {
+  log: EmitLog;
+  emitter: Emitter;
+}
+
 interface WorkhorsePlugin {
   name: string;
-  onStart(dispatcher: CommandDispatcher): void;
+  onStart(config: PluginConfig): void;
   onStop(): void;
 }
 
@@ -96,7 +105,6 @@ interface TaskQueue {
   addTask(taskId: string, payload: Payload): Promise<void>;
   reserveTask(): Promise<TaskRow | undefined>;
   taskSuccessful(taskRow: TaskRow): Promise<void>;
-  updateTaskResult(taskId: string, payload: Payload): Promise<void>;
   taskFailed(taskRow: TaskRow): Promise<void>;
   requeue: () => Promise<void>;
   queryTaskCount(status: TaskState): Promise<number>;
@@ -154,13 +162,20 @@ interface TaskHooks {
   failureHook: () => Promise<void>;
 }
 
-type JSONPrimitive = string | number | boolean | null;
+type JSONPrimitive = string | number | boolean | null | undefined;
 type JSONObject = { [key: string]: JSONValue };
 type JSONArray = JSONValue[];
 type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
 type Payload = JSONValue;
 type TaskResult = Payload | undefined;
+
+// TODO: Use these for building up the type for Payload as well,
+// TODO: we don't want to allow naked primitives or null values
+type JsonValue = string | number | boolean | JsonObject | JsonArray;
+type JsonObject = { [key: string]: JsonValue | null };
+type JsonArray = JsonValue[];
+type EventPayload = JsonObject;
 
 type RunTask = (taskId: string, payload: Payload) => Promise<TaskResult>;
 
@@ -235,10 +250,14 @@ export type {
   SingleTaskExecutor,
   WorkhorseConfig,
   BackoffSettings,
+  LogLevel,
+  EmitLog,
   PollOptions,
   CommandDispatcher,
   WorkhorsePlugin,
+  PluginConfig,
   Factories,
+  EventPayload,
 };
 export {
   TaskState,

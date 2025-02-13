@@ -1,16 +1,7 @@
-import {
-  assertTaskRow,
-  RunTask,
-  TaskQueue,
-  TaskRow,
-  TaskHooks,
-  WorkhorseConfig,
-  Payload,
-} from '@/types.ts';
+import { assertTaskRow, RunTask, TaskQueue, TaskRow, TaskHooks, WorkhorseConfig } from '@/types.ts';
 import log from 'loglevel';
 import { ReservationFailed } from '@/errors.ts';
-import { Emitter } from '@/events/emitter.ts';
-import { taskIdSuccess } from '@/events/helpers.ts';
+import * as taskHelpers from '@/events/taskHelpers';
 
 const createExecutorHooks = (
   _config: WorkhorseConfig,
@@ -18,7 +9,7 @@ const createExecutorHooks = (
   run: RunTask
 ): TaskHooks => {
   let task: undefined | TaskRow = undefined;
-  let taskResult: undefined | Payload;
+  let taskResult: unknown;
   return {
     reserveHook: async (): Promise<void> => {
       log.debug(`Reserving task...`);
@@ -40,7 +31,7 @@ const createExecutorHooks = (
       assertTaskRow(task);
       log.debug(`Task successful: ${task.taskId}`);
       await queue.taskSuccessful(task);
-      Emitter.emit(taskIdSuccess(task.taskId), taskResult);
+      taskHelpers.emitReturnValue(task.taskId, taskResult);
     },
     failureHook: async (): Promise<void> => {
       assertTaskRow(task);

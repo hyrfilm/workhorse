@@ -1,14 +1,13 @@
 import {createWorkhorse} from "../src/workhorse.ts";
 import * as tasks from "./tasks.ts";
-import {millisec, seconds, sleep} from "../src/util/time.ts";
+import {millisec} from "../src/util/time.ts";
 import { log, setLogLevel } from "../src/util/logging.ts";
-import { Emitter } from '../src/events/emitter.ts';
 import { v4 as uuidv4 } from 'uuid';
 import { TaskExecutorStrategy } from "../src/types.ts";
 
 // This example creates some downloading tasks awaits each one
 // until moving on to the next
-export async function taskResultExample() {
+export async function run() {
     setLogLevel("info");
 
     log("Creating workhorse instance...");    
@@ -18,8 +17,6 @@ export async function taskResultExample() {
     const workhorse = await createWorkhorse(tasks.jsonRequestTask, { taskExecution: TaskExecutorStrategy.SERIAL, concurrency: 1, poll: { auto: false, pre: { wait: 'ready'}, interval: millisec(100)} } );
 
     const container = document.getElementById('tasks');
-    
-    const taskIds: Record<string, string> = {}
 
     log(`Running ${numTasks} tasks...`);
 
