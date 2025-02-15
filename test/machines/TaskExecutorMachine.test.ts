@@ -17,7 +17,7 @@ function assertNodeMaches(node: DirectedGraphNode, childIndex: number, name: str
 function assertEdgeMaches(node: DirectedGraphNode, childIndex: number, names: string[]) {
   expect(node.children[childIndex].edges.length).toBe(names.length);
   node.children[childIndex].edges.forEach((edge, index) => {
-    expect(edge.target.id.toLowerCase()).toContain(names[index].toLowerCase())
+    expect(edge.target.id.toLowerCase()).toContain(names[index].toLowerCase());
   });
 }
 
@@ -43,12 +43,12 @@ describe('TaskExecutorMachine Graph Tests', () => {
     assertNodeMaches(graph, 0, 'idle');
     assertNodeMaches(graph, 1, 'ready');
     assertNodeMaches(graph, 2, 'reserving');
-    assertEdgeMaches(graph, 2, ['executing', 'noReservation'])
+    assertEdgeMaches(graph, 2, ['executing', 'noReservation']);
     assertNodeMaches(graph, 3, 'executing');
-    assertEdgeMaches(graph, 3, ['successful', 'failed'])
+    assertEdgeMaches(graph, 3, ['successful', 'failed']);
     // always transition: noReservation -> continue -> ready
     assertNodeMaches(graph, 4, 'noReservation');
- 
+
     expect(graph.children[5].id).contains('taskFailed');
     expect(graph.children[5].edges[0].target.id).contains('backingOff');
     expect(graph.children[5].edges[1].target.id).contains('halted');
