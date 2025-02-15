@@ -1,31 +1,34 @@
-import fc from "fast-check";
-import {Payload, TaskExecutorStrategy, RunTask, WorkhorseConfig, TaskResult} from "@/types";
-import {createWorkhorse} from "@/workhorse";
-import {expect, test, vi} from "vitest";
-import {createDatabaseStub} from "./db/createDatabaseStub";
-import {createTaskQueue} from "@/queue/TaskQueue.ts";
-import {createExecutorHooks} from "@/executor/hooks.ts";
-import {createTaskExecutor} from "@/executor/TaskExecutor";
-import {createExecutorPool} from "@/executor/TaskExecutorPool.ts";
+import fc from 'fast-check';
+import { Payload, TaskExecutorStrategy, RunTask, WorkhorseConfig, TaskResult } from '@/types';
+import { createWorkhorse } from '@/workhorse';
+import { expect, test, vi } from 'vitest';
+import { createDatabaseStub } from './db/createDatabaseStub';
+import { createTaskQueue } from '@/queue/TaskQueue.ts';
+import { createExecutorHooks } from '@/executor/hooks.ts';
+import { createTaskExecutor } from '@/executor/TaskExecutor';
+import { createExecutorPool } from '@/executor/TaskExecutorPool.ts';
+import { result } from 'lodash';
+import { a } from 'vitest/dist/chunks/suite.B2jumIFP.js';
+import { J } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
 
-vi.mock("@/db/createDatabase.ts", () => ({
+vi.mock('@/db/createDatabase.ts', () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),
 }));
 
 // Returns a workhorse instance that's identical to a regular one except that it
 // runs on node.js with an in-memory sqlite db.
 async function createWorkhorseFixture(runTask: RunTask, options?: Partial<WorkhorseConfig>) {
-    const overrides = {
-        createDatabase: createDatabaseStub,
-        createTaskQueue: createTaskQueue,
-        createHooks: createExecutorHooks,
-        createTaskExecutor: createTaskExecutor,
-        createExecutorPool: createExecutorPool,
-    };
-    return await createWorkhorse(runTask, options, overrides);
+  const overrides = {
+    createDatabase: createDatabaseStub,
+    createTaskQueue: createTaskQueue,
+    createHooks: createExecutorHooks,
+    createTaskExecutor: createTaskExecutor,
+    createExecutorPool: createExecutorPool,
+  };
+  return await createWorkhorse(runTask, options, overrides);
 }
 
-test("Tasks are processed atomically in the order they were added (high concurrency)", async () => {
+test('Tasks are processed atomically in the order they were added (high concurrency)', async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.scheduler(),
@@ -50,12 +53,10 @@ test("Tasks are processed atomically in the order they were added (high concurre
           return await taskPromise;
         };
 
-        const workhorse = await createWorkhorseFixture(runTask, { concurrency })
+        const workhorse = await createWorkhorseFixture(runTask, { concurrency });
 
         // Queue tasks
-        const queuePromises = taskIds.map((id) =>
-          scheduler.schedule(workhorse.queue(`${id}`, {}))
-        );
+        const queuePromises = taskIds.map((id) => scheduler.schedule(workhorse.queue(`${id}`, {})));
         await scheduler.waitFor(Promise.all(queuePromises));
 
         // Poll tasks
@@ -72,11 +73,12 @@ test("Tasks are processed atomically in the order they were added (high concurre
         // Validate the results
         expect(expectedIds).toEqual(executedTasks);
       }
-    )
-  , {verbose: 2, numRuns: 100});
+    ),
+    { verbose: 2, numRuns: 100 }
+  );
 });
 
-test("Tasks are processed atomically in the order they were added (low concurrency)", async () => {
+test('Tasks are processed atomically in the order they were added (low concurrency)', async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.scheduler(),
@@ -94,10 +96,10 @@ test("Tasks are processed atomically in the order they were added (low concurren
         };
 
         // Create the workhorse instance
-          const workhorse = await createWorkhorseFixture(runTask, { concurrency });
+        const workhorse = await createWorkhorseFixture(runTask, { concurrency });
 
-          const initialStatus = await workhorse.getStatus();
-        let expectedStatus = { queued: 0, executing: 0, successful: 0, failed: 0};
+        const initialStatus = await workhorse.getStatus();
+        let expectedStatus = { queued: 0, executing: 0, successful: 0, failed: 0 };
         expect(expectedStatus).toEqual(initialStatus);
 
         const addTasksSequence = expectedIds.map((taskId) => () => workhorse.queue(taskId, {}));
@@ -106,10 +108,15 @@ test("Tasks are processed atomically in the order they were added (low concurren
         await scheduler.waitAll();
 
         const scheduledStatus = await workhorse.getStatus();
-        expectedStatus = expectedStatus = { queued: taskIds.length, executing: 0, successful: 0, failed: 0};
+        expectedStatus = expectedStatus = {
+          queued: taskIds.length,
+          executing: 0,
+          successful: 0,
+          failed: 0,
+        };
         expect(expectedStatus).toEqual(scheduledStatus);
 
-        expectedStatus = { queued: 0, executing: 0, successful: taskIds.length, failed: 0};
+        expectedStatus = { queued: 0, executing: 0, successful: taskIds.length, failed: 0 };
         let finalStatus = await workhorse.getStatus();
         while (finalStatus.successful !== expectedStatus.successful) {
           await workhorse.poll();
@@ -121,8 +128,9 @@ test("Tasks are processed atomically in the order they were added (low concurren
         expect(expectedStatus).toEqual(finalStatus);
         expect(expectedIds).toEqual(actualIds);
       }
-    )
-  , {verbose: 2, numRuns: 100});
+    ),
+    { verbose: 2, numRuns: 100 }
+  );
 });
 
 //TODO: Decide what to do with this one:
@@ -201,72 +209,96 @@ test("Fuzzing - start/stop", async () => {
     );
 });
 */
-test("Fuzzing - tasks are processed atomically with retries until all succeed", async () => {
-    // Helper to create a deterministic task runner using an infinite stream of probabilities
-    const createTaskFunction = (taskProbStream: IterableIterator<number>) => {
-        const executedTaskSet = new Set<string>();
-        return async (taskId: string, _payload: Payload): Promise<TaskResult> => {
-            // Use the next value from the probability stream
-            const taskFailureProb = taskProbStream.next().value;
-            const currentFailureProb = taskProbStream.next().value*2.0; // make the task have a slight bias towards success
-            const shouldFail = taskFailureProb > currentFailureProb; // Fail if probability is lower
-            if (shouldFail) {
-                //console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
-                throw new Error(`Task ${taskId} failed`);
-            } else {
-                if (executedTaskSet.has(taskId)) {
-                    //console.log(`Task ${taskId} has already been executed`);
-                    throw new Error(`Task ${taskId} has already been executed`);
-                }
+test('Fuzzing - tasks are processed atomically with retries until all succeed', async () => {
+  // Helper to create a deterministic task runner using an infinite stream of probabilities
+  const createTaskFunction = (taskProbStream: IterableIterator<number>) => {
+    const executedTaskSet = new Set<string>();
+    return async (taskId: string, _payload: Payload): Promise<TaskResult> => {
+      // Use the next value from the probability stream
+      const taskFailureProb = taskProbStream.next().value;
+      const currentFailureProb = taskProbStream.next().value * 2.0; // make the task have a slight bias towards success
+      const shouldFail = taskFailureProb > currentFailureProb; // Fail if probability is lower
+      if (shouldFail) {
+        //console.log(`${taskId}`, 'failure: ', taskFailureProb, currentFailureProb);
+        throw new Error(`Task ${taskId} failed`);
+      } else {
+        if (executedTaskSet.has(taskId)) {
+          //console.log(`Task ${taskId} has already been executed`);
+          throw new Error(`Task ${taskId} has already been executed`);
+        }
 
-                //console.log(`${taskId}`, 'succcess: ', taskFailureProb, currentFailureProb);
-            }
-            executedTaskSet.add(taskId);
-            return Promise.resolve(undefined);
-        };
+        //console.log(`${taskId}`, 'succcess: ', taskFailureProb, currentFailureProb);
+      }
+      executedTaskSet.add(taskId);
+      return Promise.resolve(undefined);
     };
+  };
 
-    await fc.assert(
-        fc.asyncProperty(
-            fc.uniqueArray(fc.uuid(), { minLength: 1, maxLength: 36 }), // Unique task IDs
-            fc.noShrink(fc.infiniteStream(fc.integer({ min: 0, max: 100 }))), // Infinite stream of probabilities
-            fc.integer({ min: 30, max: 30 }), // Concurrency level
-            async (taskIds, probabilityStream, concurrency) => {
-                const totalTasks = taskIds.map((id) => id);
-                const runTask = createTaskFunction(probabilityStream);
+  await fc.assert(
+    fc.asyncProperty(
+      fc.uniqueArray(fc.uuid(), { minLength: 1, maxLength: 36 }), // Unique task IDs
+      fc.noShrink(fc.infiniteStream(fc.integer({ min: 0, max: 100 }))), // Infinite stream of probabilities
+      fc.integer({ min: 30, max: 30 }), // Concurrency level
+      async (taskIds, probabilityStream, concurrency) => {
+        const totalTasks = taskIds.map((id) => id);
+        const runTask = createTaskFunction(probabilityStream);
 
-                const workhorse = await createWorkhorseFixture(runTask, { concurrency, taskExecution: TaskExecutorStrategy.DETACHED });
+        const workhorse = await createWorkhorseFixture(runTask, {
+          concurrency,
+          taskExecution: TaskExecutorStrategy.DETACHED,
+        });
 
-                // Queue tasks
-                const queuePromises = taskIds.map((id) =>
-                    workhorse.queue(id, {})
-                );
-                await Promise.all(queuePromises);
+        // Queue tasks
+        const queuePromises = taskIds.map((id) => workhorse.queue(id, {}));
+        await Promise.all(queuePromises);
 
-                // Poll until all tasks succeed
-                while (true) {
-                    await workhorse.poll();
-                    //console.log('Done polling');
-                    // Check the task queue status
-                    //console.log('Check status');
-                    const status = await workhorse.getStatus();
-                    //console.log('Status ', status);
-                    if (status.successful === totalTasks.length) {
-                        break;
-                    }
-                    //console.log('Done check status');
-                    if (status.failed>0) {
-                        //console.log('*** requeuing')
-                        await workhorse.requeue();
-                        //const status = await workhorse.getStatus();
-                        //console.log('Status ', status);
-                    }
-                }
+        // Poll until all tasks succeed
+        while (true) {
+          await workhorse.poll();
+          //console.log('Done polling');
+          // Check the task queue status
+          //console.log('Check status');
+          const status = await workhorse.getStatus();
+          //console.log('Status ', status);
+          if (status.successful === totalTasks.length) {
+            break;
+          }
+          //console.log('Done check status');
+          if (status.failed > 0) {
+            //console.log('*** requeuing')
+            await workhorse.requeue();
+            //const status = await workhorse.getStatus();
+            //console.log('Status ', status);
+          }
+        }
 
-                // Ensure all tasks were executed successfully
-                expect(totalTasks.length).toBe((await workhorse.getStatus()).successful);
-            }
-        ),
-        { verbose: 2, numRuns: 100},
-    );
+        // Ensure all tasks were executed successfully
+        expect(totalTasks.length).toBe((await workhorse.getStatus()).successful);
+      }
+    ),
+    { verbose: 2, numRuns: 100 }
+  );
+});
+
+test('workhorse.run', async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.scheduler(), async (scheduler) => {
+      const runTask = async (_taskId: string, payload: Payload): Promise<TaskResult> => {
+        return Promise.resolve(payload);
+      };
+      const workhorse = await createWorkhorseFixture(runTask);
+      workhorse.startPoller({ pollInterval: 10 });
+
+      const expectedResults = [{ taskId: 'task-1' }, { taskId: 'task-2' }, { taskId: 'task-3' }];
+      const taskIds = ['task-1', 'task-2', 'task-3'];
+      const promises = [];
+
+      for (const taskId of taskIds) {
+        promises.push(scheduler.schedule(workhorse.run(taskId, { taskId })));
+      }
+      const actualResults = await scheduler.waitFor(Promise.all(promises));
+      expect(actualResults).toEqual(expectedResults);
+    }),
+    { verbose: 2, numRuns: 10 }
+  );
 });

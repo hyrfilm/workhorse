@@ -1,100 +1,104 @@
-import {createExecutorHooks} from '@/executor/hooks.ts';
-import {beforeEach, describe, expect, test} from 'vitest';
-import {createDatabaseStub} from './createDatabaseStub';
-import {Payload, RunTask, TaskQueue, TaskResult, TaskState} from '@/types';
-import {ReservationFailed} from "@/errors.ts";
+import { createExecutorHooks } from '@/executor/hooks.ts';
+import { beforeEach, describe, expect, test } from 'vitest';
+import { createDatabaseStub } from './createDatabaseStub';
+import { Payload, RunTask, TaskQueue, TaskResult, TaskState } from '@/types';
+import { ReservationFailed } from '@/errors.ts';
 import { createTaskQueue } from '@/queue/TaskQueue.ts';
-import {defaultOptions} from "@/config.ts";
-import {WorkhorseConfig} from "@/types.ts";
+import { defaultOptions } from '@/config.ts';
+import { WorkhorseConfig } from '@/types.ts';
 
 declare module 'vitest' {
-    export interface TestContext {
-        taskQueue: TaskQueue;
-        config: WorkhorseConfig,
-    }
+  export interface TestContext {
+    taskQueue: TaskQueue;
+    config: WorkhorseConfig;
   }
+}
 
 describe('TaskHooks', () => {
-    beforeEach(async (context) => {
-        const config = defaultOptions();
-        //const factories = { ... defaultFactories };
-        const factories = {
-            createDatabase: createDatabaseStub,
-            createTaskQueue: createTaskQueue,
-        };
+  beforeEach(async (context) => {
+    const config = defaultOptions();
+    //const factories = { ... defaultFactories };
+    const factories = {
+      createDatabase: createDatabaseStub,
+      createTaskQueue: createTaskQueue,
+    };
 
-        const runQuery = await factories.createDatabase();
-        context.taskQueue = factories.createTaskQueue(config, runQuery);
-    
-        await context.taskQueue.addTask('task1', {'dude': 'where'});
-        await context.taskQueue.addTask('task2', {'is': 'my'});
-        await context.taskQueue.addTask('task3', {'car': '?'});
-    });
+    const runQuery = await factories.createDatabase();
+    context.taskQueue = factories.createTaskQueue(config, runQuery);
 
-    test('reserve & run', async ({ config, taskQueue }) => {
-        const actualTasks: any[] = [];
-        const runStub: RunTask = async (taskId: string, payload: Payload): Promise<TaskResult> => {
-            actualTasks.push({taskId, payload});
-            return Promise.resolve(undefined);
-        }
+    await context.taskQueue.addTask('task1', { dude: 'where' });
+    await context.taskQueue.addTask('task2', { is: 'my' });
+    await context.taskQueue.addTask('task3', { car: '?' });
+  });
 
-        const taskRunner = createExecutorHooks(config, taskQueue, runStub);
-        await taskRunner.reserveHook();
-        await taskRunner.executeHook();
+  test('reserve & run', async ({ config, taskQueue }) => {
+    const actualTasks: any[] = [];
+    const runStub: RunTask = async (taskId: string, payload: Payload): Promise<TaskResult> => {
+      actualTasks.push({ taskId, payload });
+      return Promise.resolve(undefined);
+    };
 
-        await taskRunner.reserveHook();
-        await taskRunner.executeHook();
+    const taskRunner = createExecutorHooks(config, taskQueue, runStub);
+    await taskRunner.reserveHook();
+    await taskRunner.executeHook();
 
-        await taskRunner.reserveHook();
-        await taskRunner.executeHook();
+    await taskRunner.reserveHook();
+    await taskRunner.executeHook();
 
-        expect(actualTasks).toEqual([
-            {taskId: 'task1', payload: {dude: 'where'}},
-            {taskId: 'task2', payload: {is: 'my'}},
-            {taskId: 'task3', payload: {car: '?'}},
-        ]);
-    });
+    await taskRunner.reserveHook();
+    await taskRunner.executeHook();
 
-    test('reserve & run - success / failure', async ({ config, taskQueue }) => {
-        const runStub: RunTask = async (_taskId: string, _payload: Payload): Promise<TaskResult> => {
-            return Promise.resolve(undefined);
-        }
+    expect(actualTasks).toEqual([
+      { taskId: 'task1', payload: { dude: 'where' } },
+      { taskId: 'task2', payload: { is: 'my' } },
+      { taskId: 'task3', payload: { car: '?' } },
+    ]);
+  });
 
-        let queued = await taskQueue.queryTaskCount(TaskState.queued);
-        expect(queued).toBe(3);
+  test('reserve & run - success / failure', async ({ config, taskQueue }) => {
+    const runStub: RunTask = async (_taskId: string, _payload: Payload): Promise<TaskResult> => {
+      return Promise.resolve(undefined);
+    };
 
-        const taskRunner = createExecutorHooks(config, taskQueue, runStub);
-        await taskRunner.reserveHook();
-        await taskRunner.executeHook();
-        await taskRunner.successHook();
+    let queued = await taskQueue.queryTaskCount(TaskState.queued);
+    expect(queued).toBe(3);
 
-        await taskRunner.reserveHook();
-        await taskRunner.executeHook();
-        await taskRunner.successHook();
+    const taskRunner = createExecutorHooks(config, taskQueue, runStub);
+    await taskRunner.reserveHook();
+    await taskRunner.executeHook();
+    await taskRunner.successHook();
 
-        await taskRunner.reserveHook();
-        await taskRunner.executeHook();
-        await taskRunner.failureHook();
+    await taskRunner.reserveHook();
+    await taskRunner.executeHook();
+    await taskRunner.successHook();
 
-        queued = await taskQueue.queryTaskCount(TaskState.queued);
-        const successful = await taskQueue.queryTaskCount(TaskState.successful);
-        const failed = await taskQueue.queryTaskCount(TaskState.failed);
+    await taskRunner.reserveHook();
+    await taskRunner.executeHook();
+    await taskRunner.failureHook();
 
-        expect(queued).toBe(0);
-        expect(successful).toBe(2);
-        expect(failed).toBe(1);
-    });
+    queued = await taskQueue.queryTaskCount(TaskState.queued);
+    const successful = await taskQueue.queryTaskCount(TaskState.successful);
+    const failed = await taskQueue.queryTaskCount(TaskState.failed);
 
-    test('no reservation', async ({ config, taskQueue}) => {
-        const taskRunner = createExecutorHooks(config, taskQueue, (_p1, _p2): Promise<TaskResult> => Promise.resolve(undefined));
-        await taskRunner.reserveHook();
-        await taskRunner.reserveHook();
-        await taskRunner.reserveHook();
+    expect(queued).toBe(0);
+    expect(successful).toBe(2);
+    expect(failed).toBe(1);
+  });
 
-        try {
-            await taskRunner.reserveHook();
-        } catch(err) {
-            expect(err instanceof ReservationFailed)
-        }
-    });
+  test('no reservation', async ({ config, taskQueue }) => {
+    const taskRunner = createExecutorHooks(
+      config,
+      taskQueue,
+      (_p1, _p2): Promise<TaskResult> => Promise.resolve(undefined)
+    );
+    await taskRunner.reserveHook();
+    await taskRunner.reserveHook();
+    await taskRunner.reserveHook();
+
+    try {
+      await taskRunner.reserveHook();
+    } catch (err) {
+      expect(err instanceof ReservationFailed);
+    }
+  });
 });

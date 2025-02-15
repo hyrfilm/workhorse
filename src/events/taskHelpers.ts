@@ -13,11 +13,12 @@ const taskIdFailure = (taskId: string): string => {
   return `${Notifications.TaskId.Failure}${taskId}`;
 };
 */
-const emitReturnValue = (taskId: string, ...returnValue: unknown[]): void => {
-  InternalEmitter.emitAnything(taskIdSuccess(taskId), ...returnValue);
+
+const emitReturnValue = (taskId: string, returnValue: unknown): void => {
+  InternalEmitter.emitAnything(taskIdSuccess(taskId), returnValue);
 };
 
-const waitForReturnValue = (taskId: string): Promise<unknown[]> => {
+const waitForReturnValue = (taskId: string): Promise<unknown> => {
   return new Promise((resolve) => {
     InternalEmitter.once(taskIdSuccess(taskId), (args) => {
       resolve(args);
