@@ -7,9 +7,6 @@ import { createTaskQueue } from '@/queue/TaskQueue.ts';
 import { createExecutorHooks } from '@/executor/hooks.ts';
 import { createTaskExecutor } from '@/executor/TaskExecutor';
 import { createExecutorPool } from '@/executor/TaskExecutorPool.ts';
-import { result } from 'lodash';
-import { a } from 'vitest/dist/chunks/suite.B2jumIFP.js';
-import { J } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
 
 vi.mock('@/db/createDatabase.ts', () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),

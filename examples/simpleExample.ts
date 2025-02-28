@@ -19,25 +19,17 @@ await workhorse.queue('task5', { msg: 'car', delay: seconds(1) });
 
 log.info('Done');
 
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
-await workhorse.poll();
-
-log.info(await workhorse.getStatus());
-
+let done = false;
+while(!done) {
+    await workhorse.poll();
+    const status = await workhorse.getStatus();
+    if (status.queued===0) {
+        if (status.failed) {
+            await workhorse.requeue();
+        } else {
+            if (status.executing===0) {
+                done = true;
+            }
+        }
+    }    
+}

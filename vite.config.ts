@@ -29,7 +29,10 @@ export default defineConfig({
     },
     rollupOptions: {
       external: ['sqlocal'],
-    }
+      output: {
+        format: 'es',
+      },  
+    },
   },
   plugins: [
     tsconfigPaths(),

@@ -10,7 +10,9 @@
     "coverage": "vitest run --coverage",
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:examples": "tsc && vite build --config ./examples/vite.examples.config.ts",
+    "serve:examples": "vite --config ./examples/vite.examples.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -36,5 +38,8 @@
   },
   "peerDependencies": {
     "sqlocal": "^0.13.0"
+  },
+  "optionalDependencies": {
+    "uuid": "^11.1.0"
   }
 }

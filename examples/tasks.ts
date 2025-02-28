@@ -1,6 +1,6 @@
 import { assertNonPrimitive, Payload } from "../src/types";
 
-const printTask = async (taskId: string, payload: Payload): Promise<void> => {
+const printTask = async (taskId: string, payload: Payload): Promise<undefined> => {
     assertNonPrimitive(payload);
 
     let delay = 0;
@@ -40,8 +40,9 @@ const jsonRequestTask = async (taskId: string, payload: Payload): Promise<Payloa
     return await response.json();
 }
 
-const appendHTMLTask = async (taskId: string, payload: Payload): Promise<void> => {
+const appendHTMLTask = async (taskId: string, payload: Payload): Promise<undefined> => {
     assertNonPrimitive(payload);
+    console.log("Executing task: ", taskId);
 
     const { parentId, tag, text } = payload;
     let { delay } = payload;

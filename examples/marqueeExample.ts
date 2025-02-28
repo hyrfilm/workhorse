@@ -3,22 +3,15 @@ import {PauseWhenOffline} from '../src/plugins/PauseWhenOffline.ts'
 import log from "loglevel"
 import {appendHTMLTask} from "./tasks";
 import {seconds} from "../src/util/time.ts";
-import {TaskExecutorStrategy, Workhorse} from "../src/types";
+import {TaskExecutorStrategy} from "../src/types";
 
-declare global {
-    interface Window {
-        workhorse: Workhorse;
-    }
-}
-
-export async function marqueeExample() {
+export async function run(): Promise<void> {
     log.setDefaultLevel(log.levels.INFO);
 
     const numTasks = 1000;
 
     const options = { taskExecution: TaskExecutorStrategy.PARALLEL, concurrency: 10, plugins: [new PauseWhenOffline()] };
     const workhorse = await createWorkhorse(appendHTMLTask, options);
-    window.workhorse = workhorse;
     log.info("Adding tasks...");
 
     const el = document.getElementById("status") as Element;
@@ -27,18 +20,16 @@ export async function marqueeExample() {
         const status = await workhorse.getStatus();
         el.innerHTML = JSON.stringify(status);
 
-        await workhorse.queue(`task-1-${i}`, { parentId: 'tasks', tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
+        await workhorse.queue(`task-1-${i}`, { parentId: "tasks-lg", tag: 'marquee', 'text': `Hi! from task #${i}`, delay: Math.random() * numTasks/i * seconds(0.0007)});
     }
 
     workhorse.startPoller();
 
-    function updateStatus() {
-        workhorse.getStatus().then((status) => {
-            el.innerHTML = JSON.stringify(status);
-        });
+    await updateStatus();
 
+    async function updateStatus(): Promise<void> {
+        const status = await workhorse.getStatus();
+        el.innerHTML = JSON.stringify(status);
         setTimeout(updateStatus, 100);
     }
-
-    updateStatus();
 }

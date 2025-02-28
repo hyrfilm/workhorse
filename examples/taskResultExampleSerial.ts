@@ -7,7 +7,7 @@ import { TaskExecutorStrategy } from "../src/types.ts";
 
 // This example creates some downloading tasks awaits each one
 // until moving on to the next
-export async function run() {
+export async function run(): Promise<void> {
     setLogLevel("info");
 
     log("Creating workhorse instance...");    

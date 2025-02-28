@@ -1,29 +1,21 @@
 import log from "loglevel";
 import {createWorkhorse} from "../src/workhorse.ts";
 import * as tasks from "./tasks.ts";
-import {config} from "../src/config";
-import {seconds} from "../src/util/time";
 import {TaskExecutorStrategy} from "../src/types";
 
-export async function fetchExample() {
+export async function fetchExample(): Promise<void> {
  
     log.setDefaultLevel(log.levels.DEBUG);
     
-    config.concurrency = 50;
-    //config.poll.auto = true;
-    config.taskExecution = TaskExecutorStrategy.DETACHED;
-
-    config.backoff.maxTime = seconds(60);
-
     log.info("Creating workhorse instance...");
 
     const numTasks = 100;
 
-    const workhorse = await createWorkhorse(tasks.jsonRequestTask);
+    const workhorse = await createWorkhorse(tasks.jsonRequestTask, { concurrency: 50, taskExecution: TaskExecutorStrategy.DETACHED });
 
     log.info(`Creating ${numTasks} tasks...`);
 
-    await workhorse.startPoller();
+    workhorse.startPoller();
 
     for (let i=0;i<numTasks;i++) {
         const url = `https://jsonplaceholder.typicode.com/posts`;
@@ -34,14 +26,4 @@ export async function fetchExample() {
         await workhorse.queue(taskId, { url, method, body });
         log.info(`Task added: ${taskId}`);
     }
-
-    await workhorse.poll();
-    await workhorse.poll();
-    await workhorse.poll();
-    await workhorse.poll();
-    await workhorse.poll();
-    await workhorse.poll();
-    await workhorse.poll();
-    await workhorse.poll();
-
 }
