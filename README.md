@@ -2,6 +2,7 @@
 
 ## persistent task queue for the browser
 [demo page](https://hyrfilm.github.io/workhorse)
+
 Depending on your use-case can be configured with various forms of guarentees:
 * once-and-only-once execution
 * guaranteed ordering
