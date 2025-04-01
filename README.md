@@ -1,5 +1,5 @@
 # workhorse
-# https://hyrfilm.github.io/workhorse/
+# [try it out](https://hyrfilm.github.io/workhorse)
 
 ## persistent task queue for the browser
 Depending on your use-case can be configured with various forms of guarentees:
