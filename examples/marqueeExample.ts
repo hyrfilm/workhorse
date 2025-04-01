@@ -10,7 +10,7 @@ export async function run(): Promise<void> {
 
     const numTasks = 1000;
 
-    const options = { taskExecution: TaskExecutorStrategy.PARALLEL, concurrency: 10, plugins: [new PauseWhenOffline()] };
+    const options = { taskExecution: TaskExecutorStrategy.SERIAL, concurrency: 1, plugins: [new PauseWhenOffline()] };
     const workhorse = await createWorkhorse(appendHTMLTask, options);
     log.info("Adding tasks...");
 
