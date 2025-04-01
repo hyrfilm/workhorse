@@ -28,7 +28,6 @@ export default defineConfig({
       fileName: 'workhorse',
     },
     rollupOptions: {
-      external: ['sqlocal'],
       output: {
         format: 'es',
       },  
