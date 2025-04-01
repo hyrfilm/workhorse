@@ -1,4 +1,4 @@
-# workhorse
+# workhorse [![codecov](https://codecov.io/gh/hyrfilm/workhorse/graph/badge.svg?token=4371ZQKKQ0)](https://codecov.io/gh/hyrfilm/workhorse)
 
 ## persistent task queue for the browser
 [demo page](https://hyrfilm.github.io/workhorse)
@@ -12,7 +12,6 @@ Depending on your use-case can be configured with various forms of guarentees:
 * performance: tested with a concurrency settings up a setting of 1000 consumers (eg a 1000 simulatanous uploads/downloads)
 * observability
 * extensibility in terms of plugins
-* [![codecov](https://codecov.io/gh/hyrfilm/workhorse/graph/badge.svg?token=4371ZQKKQ0)](https://codecov.io/gh/hyrfilm/workhorse)
 
 Implemented using SQLite running in webworkers.
 
