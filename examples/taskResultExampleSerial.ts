@@ -28,6 +28,9 @@ export async function run(): Promise<void> {
         const result = await workhorse.run(taskId, { url, method });
         const newTask = document.createElement('div');
         newTask.textContent = `Task ${i+1}`;
+        const description = document.createElement('h4');
+        description.textContent = 'Queues 1000 downloads and processes them sequentially.';
+        container!.appendChild(description);
         container!.appendChild(newTask);
         newTask.textContent+= ' ' + JSON.stringify(result)
     }

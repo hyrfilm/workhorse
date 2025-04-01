@@ -13,11 +13,14 @@ export async function run(): Promise<void> {
     log("Creating workhorse instance...");    
 
     const numTasks = 1000;
-
-    const workhorse = await createWorkhorse(tasks.jsonRequestTask, { taskExecution: TaskExecutorStrategy.DETACHED, concurrency: 100, poll: { auto: true, pre: { wait: 'ready'}, interval: millisec(100)} } );
+    const concurrency = 100;
+    const workhorse = await createWorkhorse(tasks.jsonRequestTask, { taskExecution: TaskExecutorStrategy.DETACHED, concurrency, poll: { auto: true, pre: { wait: 'ready'}, interval: millisec(100)} } );
 
     const container = document.getElementById('tasks');
-    
+    const description = document.createElement('h4');
+    description.textContent = `Queues 1000 downloads and processes them in parallel using ${concurrency} workers.`;
+    container!.appendChild(description);
+
     const taskIds: Record<string, string> = {}
 
     for (let i = 0; i < numTasks; i++) {
