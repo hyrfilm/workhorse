@@ -18,7 +18,7 @@ export async function run(): Promise<void> {
 
     const container = document.getElementById('tasks');
     const description = document.createElement('h4');
-    description.textContent = `Queues 1000 downloads and processes them in parallel using ${concurrency} workers.`;
+    description.textContent = `Queues 5000 requests and processes them in parallel using ${concurrency} workers.`;
     container!.appendChild(description);
 
     const taskIds: Record<string, string> = {}
