@@ -12,13 +12,13 @@ export async function run(): Promise<void> {
 
     log("Creating workhorse instance...");    
 
-    const numTasks = 1000;
+    const numTasks = 5000;
     const concurrency = 100;
     const workhorse = await createWorkhorse(tasks.jsonRequestTask, { taskExecution: TaskExecutorStrategy.DETACHED, concurrency, poll: { auto: true, pre: { wait: 'ready'}, interval: millisec(100)} } );
 
     const container = document.getElementById('tasks');
     const description = document.createElement('h4');
-    description.textContent = `Queues 5000 requests and processes them in parallel using ${concurrency} workers.`;
+    description.textContent = `Queues ${numTasks} requests and processes them in parallel using ${concurrency} workers.`;
     container!.appendChild(description);
 
     const taskIds: Record<string, string> = {}
