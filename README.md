@@ -1,5 +1,4 @@
 # workhorse
-# [try it out](https://hyrfilm.github.io/workhorse)
 
 ## persistent task queue for the browser
 Depending on your use-case can be configured with various forms of guarentees:
@@ -13,6 +12,7 @@ Depending on your use-case can be configured with various forms of guarentees:
 * extensibility in terms of plugins
 
 Implemented using SQLite running in webworkers.
+### # [try it out heree](https://hyrfilm.github.io/workhorse)
 
 ## brief overview
 ```mermaid
