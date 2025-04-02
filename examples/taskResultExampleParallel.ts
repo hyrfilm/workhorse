@@ -1,12 +1,10 @@
-import {createWorkhorse} from "../src/workhorse.ts";
+import { createWorkhorse } from "../src/workhorse.ts";
 import * as tasks from "./tasks.ts";
-import {millisec, seconds, sleep} from "../src/util/time.ts";
+import { millisec, seconds, sleep } from "../src/util/time.ts";
 import { log, setLogLevel } from "../src/util/logging.ts";
 import { v4 as uuidv4 } from 'uuid';
 import { TaskExecutorStrategy } from "../src/types.ts";
 
-// This example some downloading tasks 
-// and renders the result of them as they come in
 export async function run(): Promise<void> {
     setLogLevel("info");
 
@@ -23,8 +21,6 @@ export async function run(): Promise<void> {
 
     const taskIds: Record<string, string> = {}
 
-    await updateStatus();
-
     const statusElement = document.getElementById("status") as Element;
     async function updateStatus(): Promise<void> {
         const status = await workhorse.getStatus();
@@ -40,6 +36,8 @@ export async function run(): Promise<void> {
       newTask.textContent = `Task ${i+1}`;
       container!.appendChild(newTask);
     }
+
+    setTimeout(updateStatus, 100);
 
     log(`Running ${numTasks} tasks...`);
 
