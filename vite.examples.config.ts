@@ -13,7 +13,7 @@ export default defineConfig({
     target: "es2022",
     outDir: "dist",
     rollupOptions: {
-      input: resolve(__dirname, 'examples/index.html'),
+      input: resolve(__dirname, 'examples/'),
     },
   },
   plugins: [
