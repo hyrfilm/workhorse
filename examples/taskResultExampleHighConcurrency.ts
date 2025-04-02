@@ -10,8 +10,8 @@ export async function run(): Promise<void> {
 
     log("Creating workhorse instance...");    
 
-    const numTasks = 100;
-    const concurrency = 5;
+    const numTasks = 5000;
+    const concurrency = 100;
     const workhorse = await createWorkhorse(tasks.jsonRequestTask, { taskExecution: TaskExecutorStrategy.DETACHED, concurrency, poll: { auto: true, pre: { wait: 'ready'}, interval: millisec(100)} } );
 
     const container = document.getElementById('tasks');
@@ -42,15 +42,15 @@ export async function run(): Promise<void> {
 
 
     let done = false;
-    const statusElement = document.getElementById("status") as Element;
 
+    const statusElement = document.getElementById("status") as Element;
     while(!done) {
         const status = await workhorse.getStatus();
-        statusElement.innerHTML = JSON.stringify(status);
+        statusElement.textContent = JSON.stringify(status);
         if (status.successful===numTasks) {
             done = true;
         }
-        sleep(seconds(1));
+        await sleep(seconds(1));
     }
 
     await workhorse.shutdown();

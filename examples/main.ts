@@ -1,6 +1,7 @@
 import * as marqueeExample from "./marqueeExample";
-import * as parallelTaskResult from "./taskResultExampleParallel";
-import * as serialTaskResult from "./taskResultExampleSerial";
+import * as highConcurrencyExample from "./taskResultExampleHighConcurrency.ts";
+import * as serialTaskResult from "./taskResultExampleSerial.ts";
+import * as parallelTaskResult from "./taskResultExampleParallel.ts";
 interface Example {
     run(): Promise<void>
 }
@@ -32,6 +33,7 @@ const examples: Record<string, Example> = {
     0: marqueeExample,
     1: serialTaskResult,
     2: parallelTaskResult,
+    3: highConcurrencyExample,
 };
 
 const searchParams = new URLSearchParams(window.location.search);
