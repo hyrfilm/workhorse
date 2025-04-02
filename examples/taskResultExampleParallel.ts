@@ -23,6 +23,15 @@ export async function run(): Promise<void> {
 
     const taskIds: Record<string, string> = {}
 
+    await updateStatus();
+
+    const statusElement = document.getElementById("status") as Element;
+    async function updateStatus(): Promise<void> {
+        const status = await workhorse.getStatus();
+        statusElement.innerHTML = JSON.stringify(status);
+        setTimeout(updateStatus, 100);
+    }
+
     for (let i = 0; i < numTasks; i++) {
       const newTask = document.createElement('div');
       const taskId = uuidv4();
