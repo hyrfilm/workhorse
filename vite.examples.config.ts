@@ -12,9 +12,6 @@ export default defineConfig({
   build: {
     target: "es2022",
     outDir: "dist",
-    rollupOptions: {
-      input: resolve(__dirname, 'examples/'),
-    },
   },
   plugins: [
     tsconfigPaths(),
