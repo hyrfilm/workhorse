@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "sideffects": false,
   "scripts": {
     "clean": "rm -rf dist && rm -rf examples/dist",
     "lint": "npx eslint ./src",
@@ -16,7 +17,6 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@eslint/js": "^9.17.0",
     "@types/better-sqlite3": "^7.6.12",
     "@vitest/coverage-v8": "^2.1.8",
     "@xstate/graph": "^3.0.1",
@@ -35,10 +35,8 @@
     "@statelyai/inspect": "^0.4.0",
     "eventemitter3": "^5.0.1",
     "loglevel": "^1.9.2",
+    "sqlocal": "^0.13.0",
     "xstate": "^5.19.0"
-  },
-  "peerDependencies": {
-    "sqlocal": "^0.13.0"
   },
   "optionalDependencies": {
     "uuid": "^11.1.0"

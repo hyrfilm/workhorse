@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "es2022",
     "useDefineForClassFields": true,
-    "module": "ESNext",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "skipLibCheck": true,
+    "module": "esnext",
+    "lib": ["esnext", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true, // import of optional dependencies will fail if set to true
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -19,6 +19,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
+    "noImplicitOverride": true,
+    //TODO: "erasableSyntaxOnly": true,
+    //TODO: "verbatimModuleSyntax": true,
 
     "baseUrl": ".",
     "paths": {
