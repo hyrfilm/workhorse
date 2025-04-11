@@ -95,8 +95,9 @@ const dispatchHook = fromPromise(
         await executors.pollAll();
         break;
       case ExecutorCommand.Shutdown:
-        await executors.shutdown();
+        await executors.stopAll();
         status = await queue.getStatus();
+        await executors.shutdown();
     }
 
     return status;

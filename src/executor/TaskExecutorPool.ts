@@ -7,6 +7,12 @@ import {
 } from '@/types.ts';
 import { UnreachableError } from '@/errors.ts';
 
+interface PollStrategies {
+  pollSerial(): Promise<void>;
+  pollParallel(): Promise<void>;
+  pollDetached(): Promise<void>;
+}
+
 const createExecutorPool = (
   config: WorkhorseConfig,
   taskExecutors: SingleTaskExecutor[],
@@ -14,7 +20,40 @@ const createExecutorPool = (
 ): TaskExecutorPool => {
   let executors = [...taskExecutors];
 
-  const executorPool = {
+  // TODO: This is too messy, split into pool / polling!?
+  const executorPool: TaskExecutorPool & PollStrategies = {
+    pollSerial: async () => {
+      for (const executor of executors) {
+        const preWait = config.poll.pre.wait;
+        await executor.waitFor(preWait);
+        executor.poll();
+      }
+    },
+    pollParallel: async () => {
+      const tasks: Promise<void>[] = [];
+
+      for (const executor of executors) {
+        if (executor.getStatus() === 'started') {
+          const preWait = config.poll.pre.wait;
+          //TODO: Instead of `await executor.waitFor(preWait)`, push the promise
+          tasks.push(
+              executor.waitFor(preWait).then(() => {
+                executor.poll();
+              })
+          );
+        }
+      }
+      await Promise.all(tasks);
+    },
+    pollDetached: () => {
+      for (const executor of executors) {
+        if (executor.getStatus() === 'started') {
+          executor.poll();
+        }
+      }
+      return Promise.resolve();
+    },
+
     startAll: async () => {
       for (const executor of executors) {
         executor.start();
@@ -34,11 +73,7 @@ const createExecutorPool = (
     },
     shutdown: async () => {
       await executorPool.stopAll();
-
-      for (const executor of executors) {
-        executor.stop();
-        executors = [];
-      }
+      executors = [];
     },
     pollAll: async () => {
       switch (config.taskExecution) {
@@ -47,7 +82,7 @@ const createExecutorPool = (
         case TaskExecutorStrategy.PARALLEL:
           return executorPool.pollParallel();
         case TaskExecutorStrategy.DETACHED:
-          return executorPool.pollNoWait();
+          return executorPool.pollDetached();
         default:
           throw new UnreachableError(
             config.taskExecution,
@@ -55,38 +90,7 @@ const createExecutorPool = (
           );
       }
     },
-    pollSerial: async () => {
-      for (const executor of executors) {
-        const preWait = config.poll.pre.wait;
-        await executor.waitFor(preWait);
-        executor.poll();
-      }
-    },
-    pollParallel: async () => {
-      const tasks: Promise<void>[] = [];
-
-      for (const executor of executors) {
-        if (executor.getStatus() === 'started') {
-          const preWait = config.poll.pre.wait;
-          // Instead of `await executor.waitFor(preWait)`, push the promise
-          tasks.push(
-            executor.waitFor(preWait).then(() => {
-              executor.poll();
-            })
-          );
-        }
-      }
-      await Promise.all(tasks);
-    },
-    pollNoWait: () => {
-      for (const executor of executors) {
-        if (executor.getStatus() === 'started') {
-          executor.poll();
-        }
-      }
-      return Promise.resolve();
-    },
-  };
+  } as const;
 
   return executorPool;
 };

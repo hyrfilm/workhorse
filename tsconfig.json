@@ -20,6 +20,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "noImplicitOverride": true,
+    "allowUnreachableCode": false,
     //TODO: "erasableSyntaxOnly": true,
     //TODO: "verbatimModuleSyntax": true,
 

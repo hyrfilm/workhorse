@@ -21,6 +21,9 @@ export default defineConfig({
   build: {
     target: "es2022",
     sourcemap: true,
+    outDir: "dist",
+    emptyOutDir: true,
+    emitAssets: true,
 
     lib: {
       entry: {

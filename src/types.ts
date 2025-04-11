@@ -16,7 +16,8 @@ interface Workhorse {
   queue: (taskId: string, payload: Payload) => Promise<void>;
   run: (taskId: string, payload: Payload) => Promise<unknown>;
   getStatus: () => Promise<QueueStatus>;
-  startPoller: (opts?: PollOptions) => void;
+  getLastStatus: () => QueueStatus;
+  startPoller: () => void;
   stopPoller: () => void;
   poll: () => Promise<void>;
   requeue: () => Promise<void>;

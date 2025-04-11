@@ -2,7 +2,7 @@ import { QueryResult } from '@/types';
 import { schema } from '@/db/sql';
 import Database from 'better-sqlite3';
 
-async function createDatabaseStub(): Promise<(query: string) => Promise<QueryResult[]>> {
+function createDatabaseStub(): Promise<(query: string) => Promise<QueryResult[]>> {
   const db = new Database(':memory:');
   db.pragma('journal_mode = WAL');
   db.exec(schema);
@@ -24,12 +24,17 @@ async function createDatabaseStub(): Promise<(query: string) => Promise<QueryRes
       if (e instanceof TypeError) {
         db.prepare(query).run();
         return await Promise.resolve([]);
-        throw e;
+      } else {
+        return Promise.reject(e);
       }
     }
-    return await Promise.reject();
   }
-  return runQuery;
+  // we return a promise because the actual implementation requires that
+  // the interface that returns the database is async (in order for it to be
+  // compatible with the actual implementation that runs in a webworker)
+  return new Promise(resolve => {
+    resolve(runQuery);
+  });
 }
 
 export { createDatabaseStub };
