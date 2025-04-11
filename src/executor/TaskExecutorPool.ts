@@ -37,9 +37,9 @@ const createExecutorPool = (
           const preWait = config.poll.pre.wait;
           //TODO: Instead of `await executor.waitFor(preWait)`, push the promise
           tasks.push(
-              executor.waitFor(preWait).then(() => {
-                executor.poll();
-              })
+            executor.waitFor(preWait).then(() => {
+              executor.poll();
+            })
           );
         }
       }

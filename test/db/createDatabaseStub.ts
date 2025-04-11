@@ -32,7 +32,7 @@ function createDatabaseStub(): Promise<(query: string) => Promise<QueryResult[]>
   // we return a promise because the actual implementation requires that
   // the interface that returns the database is async (in order for it to be
   // compatible with the actual implementation that runs in a webworker)
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     resolve(runQuery);
   });
 }
