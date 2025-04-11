@@ -30,7 +30,7 @@
     "build:types": "tsc -p tsconfig.build.json && npx rollup -c rollup.dts.config.js",
     "build:lib": "tsc && vite build --config vite.config.ts",
     "build:examples": "tsc && vite build --config vite.examples.config.ts",
-    "build": "npm run build:lib && npm run build:examples",
+    "build": "npm run build:lib && npm run build:types && npm run build:examples",
     "preview": "vite preview --config vite.examples.config.ts"
   },
   "devDependencies": {
