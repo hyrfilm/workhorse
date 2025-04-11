@@ -21,6 +21,7 @@ export default defineConfig({
     emitAssets: true,
     assetsInlineLimit: 0,
     rollupOptions: {
+      preserveEntrySignatures: 'exports-only',
       input: resolve(__dirname, 'src/index.ts'),
       output: {
         format: 'es',
