@@ -13,29 +13,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   base: "./",
-  server: {
-    hmr: {
-      host: 'localhost',
-    },
-  },
   build: {
     target: "es2022",
     sourcemap: true,
     outDir: "dist",
     emptyOutDir: true,
     emitAssets: true,
-
-    lib: {
-      entry: {
-        lib: resolve(__dirname, 'src/main.ts'),
-      },
-      name: 'workhorse',
-      fileName: 'workhorse',
-    },
+    assetsInlineLimit: 0,
     rollupOptions: {
+      input: resolve(__dirname, 'src/index.ts'),
       output: {
         format: 'es',
-      },  
+        entryFileNames: 'workhorse.js',
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
     },
   },
   plugins: [
@@ -48,5 +40,10 @@ export default defineConfig({
   ],
   optimizeDeps: {
     exclude: ["sqlocal"],
+  },
+  server: {
+    hmr: {
+      host: 'localhost',
+    },
   },
 });

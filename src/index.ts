@@ -2,5 +2,5 @@ import type { WorkhorseConfig, LogLevel, BackoffSettings, DuplicateStrategy, Tas
 import { defaultOptions } from "./config.ts";
 import { createWorkhorse } from "./workhorse.ts";
 
-export { defaultOptions, createWorkhorse };
 export type { WorkhorseConfig, LogLevel, BackoffSettings, DuplicateStrategy, TaskExecutorStrategy };
+export { defaultOptions, createWorkhorse };

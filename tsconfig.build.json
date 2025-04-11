@@ -1,15 +1,16 @@
-// tsconfig.build.json
 {
-    "extends": "./tsconfig.json",
-    "compilerOptions": {
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
     "noEmit": false,
-        "emitDeclarationOnly": true,
-        "declaration": true,
-        "declarationDir": "./types",
-        "outDir": "./types",
-        "moduleResolution": "node", // important for resolving paths when emitting
-        "isolatedModules": false, // not needed for dts
-        "module": "esnext"
-},
-    "exclude": ["test", "examples", "dist", "types"]
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationDir": "./types",
+    "outDir": "./types",
+    "moduleResolution": "node",
+    "isolatedModules": false,
+    "module": "es2022"
+  },
+  "include": [
+    "./src/index.ts"
+  ],
 }

@@ -3,7 +3,7 @@ import { Payload, RunTask, TaskExecutorStrategy, TaskResult } from '@/types';
 import { describe, expect, test, vi } from 'vitest';
 import { seconds } from '@/util/time.ts';
 import { createDatabaseStub } from './db/createDatabaseStub.ts';
-import { createWorkhorse } from '@/main.ts';
+import { createWorkhorse } from '@/workhorse.ts';
 
 vi.mock('@/db/createDatabase.ts', () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),

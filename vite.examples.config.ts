@@ -6,6 +6,12 @@ import { dirname } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function crossOriginIsolationMiddleware(_: any, response: any, next: any) {
+  response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  next();
+}
+
 export default defineConfig({
   base: "./",
   root: resolve(__dirname, 'examples'),
@@ -17,8 +23,19 @@ export default defineConfig({
   },
   plugins: [
     tsconfigPaths(),
+    {
+      name: 'cross-origin-isolation',
+      configureServer: server => { server.middlewares.use(crossOriginIsolationMiddleware); },
+      configurePreviewServer: server => { server.middlewares.use(crossOriginIsolationMiddleware); },
+    },
+
   ],
   optimizeDeps: {
     exclude: ["sqlocal"],
+  },
+  server: {
+    hmr: {
+      host: 'localhost',
+    },
   },
 });
