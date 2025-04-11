@@ -3,11 +3,21 @@
   "description": "Transactional task queue for the browser with support for OPFS, localStorage, sessionStorage, in-memory",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hyrfilm/workhorse"
+    "url": "git+https://github.com/hyrfilm/workhorse.git"
   },
   "author": "Jonas Holmer <jonas.holmer@gmail.com>",
   "license": "MIT",
-  "keywords": ["task queue", "transactional", "browser", "sqlite", "OPFS", "localStorage", "sessionStorage", "in-memory", "database"],
+  "keywords": [
+    "task queue",
+    "transactional",
+    "browser",
+    "sqlite",
+    "OPFS",
+    "localStorage",
+    "sessionStorage",
+    "in-memory",
+    "database"
+  ],
   "version": "0.1.0",
   "type": "module",
   "sideffects": false,
@@ -17,7 +27,9 @@
       "types": "./dist/workhorse.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/workhorse.js",
   "types": "./dist/workhorse.d.ts",
   "scripts": {
