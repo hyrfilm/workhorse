@@ -69,7 +69,6 @@ const createWorkhorse = async (
   };
   const result = await initialize(run, runtimeConfig.options, runtimeConfig.factories);
   const [taskQueue, dispatcher, poller, pluginHandler] = result;
-  const lastStatus = { queued: 0, successful: 0, failed: 0, executing: 0 };
 
   const workhorse: Workhorse = {
     queue: async (taskId: string, payload: Payload) => {
@@ -84,9 +83,6 @@ const createWorkhorse = async (
     },
     getStatus: async () => {
       return await taskQueue.getStatus();
-    },
-    getLastStatus: () => {
-      return lastStatus;
     },
     startPoller: () => {
       poller.start();

@@ -7,6 +7,10 @@ const setLogLevel = (level: LogLevel): void => {
   loglevel.setLevel(level);
 };
 
+const debug = (...s: string[]): void => {
+  loglevel.debug(prefix, ...s);
+};
+
 const log = (...s: string[]): void => {
   loglevel.info(prefix, ...s);
 };
@@ -15,5 +19,5 @@ const error = (...s: string[]): void => {
   loglevel.info(prefix, 'ERROR - ', ...s);
 };
 
-export { log, error, setLogLevel };
+export { log, error, debug, setLogLevel };
 export type { LogLevel };

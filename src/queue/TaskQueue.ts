@@ -25,6 +25,7 @@ import {
   StatusQuery,
 } from './db/sql';
 import { DuplicateTaskError, UnreachableError } from '@/errors.ts';
+import { Emitter, Notifications } from "@events";
 
 function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
   const taskQueue: TaskQueue = {
@@ -42,6 +43,7 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
       }
       try {
         await sql(query);
+        Emitter.emit(Notifications.Task.Added, { taskId });
       } catch (e) {
         if (e instanceof Error) {
           if ('code' in e) {
@@ -67,10 +69,12 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
     taskSuccessful: async (taskRow: TaskRow) => {
       const query = taskSuccessQuery(taskRow.id);
       await sql(query);
+      Emitter.emit(Notifications.Task.Success, { taskId: taskRow.taskId });
     },
     taskFailed: async (taskRow: TaskRow) => {
       const query = taskFailureQuery(taskRow.id);
       await sql(query);
+      Emitter.emit(Notifications.Task.Failure, { taskId: taskRow.taskId });
     },
     requeue: async (): Promise<undefined> => {
       const query = requeueFailuresQuery();
@@ -89,7 +93,6 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
         throw new Error(shouldNotHappen);
       }
     },
-
     getStatus: async (): Promise<QueueStatus> => {
       const query = getAllStatusQuery();
       const records = await sql(query);

@@ -1,7 +1,7 @@
-import { Emitter } from './events';
+import { Emitter } from '@/events';
 import { createEmitterWithSource, createLogEmitter } from './events/emitterHelpers';
 import { WorkhorseConfig, CommandDispatcher, WorkhorsePlugin, EmitLog } from './types';
-import { error, log } from './util/logging';
+import { error, debug } from './util/logging';
 
 interface PluginHandler {
   startPlugins(config: WorkhorseConfig, dispatcher: CommandDispatcher): void;
@@ -25,14 +25,14 @@ const createPluginHandler = (): PluginHandler => {
         } catch (e) {
           error(`Plugin ${plugin.name} failed to start: ${e}`);
         }
-        log(`Started plugin: ${plugin.name}`);
+        debug(`Started plugin: ${plugin.name}`);
         plugins.push(plugin);
       });
     },
 
     stopPlugins: () => {
       plugins.forEach((plugin) => {
-        log(`Stopping plugin: ${plugin.name}`);
+        debug(`Stopping plugin: ${plugin.name}`);
         plugin.onStop();
       });
       plugins.length = 0;
