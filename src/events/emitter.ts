@@ -1,31 +1,33 @@
 import { EventEmitter } from 'eventemitter3';
-import { EventPayload } from '@types';
-import { Event } from '@/events/eventTypes.ts';
+import type { WorkhorseEventMap } from './eventTypes';
 
-const eventEmitter = new EventEmitter();
-
-interface Emitter {
-  on(event: Event, fn: (payload: EventPayload) => void): void;
-  once(event: Event, fn: (payload: EventPayload) => void): void;
-  off(event: Event, fn: (payload: EventPayload) => void): void;
-  emit(event: Event, payload?: EventPayload): void;
+interface TypedEmitter<Events extends Record<string, any>> {
+  on<K extends keyof Events>(event: K, fn: (payload: Events[K]) => void): void;
+  once<K extends keyof Events>(event: K, fn: (payload: Events[K]) => void): void;
+  off<K extends keyof Events>(event: K, fn: (payload: Events[K]) => void): void;
+  emit<K extends keyof Events>(event: K, payload: Events[K]): void;
 }
 
-const EMPTY_PAYLOAD = Object.freeze({} as const);
+function createTypedEmitter<Events extends Record<string, any>>(): TypedEmitter<Events> {
+  const ee = new EventEmitter();
 
-const Emitter: Emitter = {
-  on: (event, fn) => {
-    eventEmitter.on(event, fn);
-  },
-  once: (event, fn) => {
-    eventEmitter.once(event, fn);
-  },
-  off: (event, fn) => {
-    eventEmitter.off(event, fn);
-  },
-  emit: (event, payload = EMPTY_PAYLOAD) => {
-    eventEmitter.emit(event, payload);
-  },
-} as const;
+  return {
+    on(event, fn) {
+      ee.on(event as string, fn as (...args: any[]) => void);
+    },
+    once(event, fn) {
+      ee.once(event as string, fn as (...args: any[]) => void);
+    },
+    off(event, fn) {
+      ee.off(event as string, fn as (...args: any[]) => void);
+    },
+    emit(event, payload) {
+      ee.emit(event as string, payload);
+    },
+  };
+}
 
-export { Emitter, EMPTY_PAYLOAD };
+const Emitter: TypedEmitter<WorkhorseEventMap> = createTypedEmitter();
+
+export { Emitter, createTypedEmitter };
+export type { TypedEmitter };
