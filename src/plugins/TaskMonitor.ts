@@ -3,10 +3,6 @@ import { Emitter, Notifications } from '@events';
 import { Subscriptions } from '@/events/eventTypes.ts';
 import {debug} from "@/util/logging.ts";
 
-function clamp(num: number, lower: number, upper: number) {
-  return Math.min(Math.max(num, lower), upper);
-}
-
 class TaskMonitor implements WorkhorsePlugin {
   public name = 'TaskMonitor';
   private allTaskIds = new Set();
@@ -14,7 +10,10 @@ class TaskMonitor implements WorkhorsePlugin {
   private notify = () => {
     const total = this.allTaskIds.size;
     const remaining = this.remainingTaskIds.size;
-    const progress = clamp(remaining, 0, remaining) / clamp(total, 1, total);
+    let progress = 0;
+    if (total > 0) {
+      progress = (total - remaining) / total;
+    }
     Emitter.emit(Subscriptions.TaskMonitor.Updated, { total, remaining, progress });
   };
 
