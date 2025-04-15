@@ -1,5 +1,6 @@
 import { DuplicateStrategy, TaskExecutorStrategy, WorkhorseConfig } from './types';
 import { millisec, minutes, seconds } from './util/time';
+import {TaskMonitor} from "@/plugins/TaskMonitor.ts";
 
 const defaults: WorkhorseConfig = {
   concurrency: 1,
@@ -21,11 +22,11 @@ const defaults: WorkhorseConfig = {
     maxTime: minutes(15),
   },
   duplicates: DuplicateStrategy.IGNORE,
-  plugins: [],
+  plugins: [ new TaskMonitor() ],
 };
 
 const defaultOptions = (): WorkhorseConfig => {
-  return structuredClone(defaults);
+  return defaults;
 };
 
 export { defaultOptions };

@@ -1,6 +1,7 @@
 import { WorkhorsePlugin, EventPayload } from '@/types';
 import { Emitter, Notifications } from '@events';
 import { Subscriptions } from '@/events/eventTypes.ts';
+import {debug} from "@/util/logging.ts";
 
 function clamp(num: number, lower: number, upper: number) {
   return Math.min(Math.max(num, lower), upper);
@@ -29,6 +30,7 @@ class TaskMonitor implements WorkhorsePlugin {
   };
 
   onStart(): void {
+    debug(this.name, ' starting');
     Emitter.on(Notifications.Task.Added, this.add);
     Emitter.on(Notifications.Task.Success, this.remove);
   }
