@@ -16,9 +16,9 @@ import { createDispatcher } from './dispatcher';
 import { createPeriodicJob, PeriodicJob } from '@/util/periodic.ts';
 import { error, setLogLevel } from '@/util/logging.ts';
 import { createPluginHandler, PluginHandler } from '@/pluginHandler.ts';
-import {Emitter, waitForReturnValue} from '@events';
-import {SubscriptionEvents, WorkhorseEventMap} from "@/events/eventTypes.ts";
-import {TaskMonitor} from "@/plugins/TaskMonitor.ts";
+import { Emitter, waitForReturnValue } from '@events';
+import { SubscriptionEvents, WorkhorseEventMap } from '@/events/eventTypes.ts';
+import { TaskMonitor } from '@/plugins/TaskMonitor.ts';
 
 type RuntimeConfig = [TaskQueue, CommandDispatcher, PeriodicJob, PluginHandler];
 
@@ -68,13 +68,16 @@ const createWorkhorse = async (
   const runtimeConfig = {
     options: { ...defaultOptions(), ...options },
     factories: { ...defaultFactories(), ...factories },
-    plugins: [ new TaskMonitor() ],
+    plugins: [new TaskMonitor()],
   };
   const result = await initialize(run, runtimeConfig.options, runtimeConfig.factories);
   const [taskQueue, dispatcher, poller, pluginHandler] = result;
 
   const workhorse: Workhorse = {
-    subscribe<K extends SubscriptionEvents>(event: K, handler: (payload: WorkhorseEventMap[K]) => void): () => void {
+    subscribe<K extends SubscriptionEvents>(
+      event: K,
+      handler: (payload: WorkhorseEventMap[K]) => void
+    ): () => void {
       Emitter.on(event, handler);
       return () => {
         Emitter.off(event, handler);
@@ -109,7 +112,7 @@ const createWorkhorse = async (
       poller.stop();
       pluginHandler.stopPlugins();
       return await dispatcher.shutdown();
-    }
+    },
   };
 
   await dispatcher.startExecutors();

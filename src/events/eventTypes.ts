@@ -79,7 +79,7 @@ interface WorkhorseEventMap {
   // Actions
   'Executors.Start': [];
   'Executors.Stop': [];
-  'log': { message: string };
+  log: { message: string };
 
   // Subscriptions
   'TaskMonitor.Updated': {

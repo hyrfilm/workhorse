@@ -1,5 +1,5 @@
 import { InspectionEvent, Observer } from 'xstate';
-import {SubscriptionEvents, WorkhorseEventMap} from "@/events/eventTypes.ts";
+import { SubscriptionEvents, WorkhorseEventMap } from '@/events/eventTypes.ts';
 
 type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
