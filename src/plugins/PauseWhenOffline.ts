@@ -1,23 +1,17 @@
-import { WorkhorsePlugin, PluginConfig } from '@/types';
+import { WorkhorsePlugin } from '@/types';
 import { Emitter, Actions } from '@events';
-import * as stubs from './util/stubs.ts';
+import { debug } from "@/util/logging.ts";
 
 class PauseWhenOffline implements WorkhorsePlugin {
   public name = 'PauseWhenOffline';
 
   private online;
-  private emitter = stubs.emitter;
-  private log = stubs.log;
 
   constructor() {
     this.online = true;
-    this.emitter = Emitter;
   }
 
-  onStart = (config: PluginConfig): void => {
-    this.log = config.log;
-    this.emitter = config.emitter;
-
+  onStart = (): void => {
     this.online = navigator.onLine;
     if (!this.online) {
       this.handleOffline();
@@ -33,13 +27,13 @@ class PauseWhenOffline implements WorkhorsePlugin {
   };
 
   handleOnline = (): void => {
-    this.log('info', 'Online - processing queue');
-    this.emitter.emit(Actions.Executors.Start);
+    debug('Online - processing queue');
+    Emitter.emit(Actions.Executors.Start, []);
   };
 
   handleOffline = (): void => {
-    this.log('info', 'Offline - pause processing queue');
-    this.emitter.emit(Actions.Executors.Stop);
+    debug('Offline - pause processing queue');
+    Emitter.emit(Actions.Executors.Stop, []);
   };
 }
 

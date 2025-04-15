@@ -1,9 +1,7 @@
 import { InspectionEvent, Observer } from 'xstate';
-import { Emitter } from '@/events/emitter';
+import {SubscriptionEvents, WorkhorseEventMap} from "@/events/eventTypes.ts";
 
 type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
-
-type EmitLog = (logLevel: LogLevel, ...msg: string[]) => void;
 
 type SqlExecutor = (
   queryTemplate: TemplateStringsArray | string,
@@ -11,8 +9,10 @@ type SqlExecutor = (
 ) => Promise<QueryResult[]>;
 type QueryResult = Record<string, string | number | null>[];
 type RunQuery = (query: string) => Promise<QueryResult[]>;
+type SubscriptionHandler<K extends SubscriptionEvents> = (payload: WorkhorseEventMap[K]) => void;
 
 interface Workhorse {
+  subscribe<K extends SubscriptionEvents>(event: K, handler: SubscriptionHandler<K>): () => void;
   queue: (taskId: string, payload: Payload) => Promise<void>;
   run: (taskId: string, payload: Payload) => Promise<unknown>;
   getStatus: () => Promise<QueueStatus>;
@@ -34,14 +34,9 @@ interface CommandDispatcher {
   shutdown: () => Promise<QueueStatus>;
 }
 
-interface PluginConfig {
-  log: EmitLog;
-  emitter: Emitter;
-}
-
 interface WorkhorsePlugin {
   name: string;
-  onStart(config: PluginConfig): void;
+  onStart(): void;
   onStop(): void;
 }
 
@@ -251,11 +246,9 @@ export type {
   WorkhorseConfig,
   BackoffSettings,
   LogLevel,
-  EmitLog,
   PollOptions,
   CommandDispatcher,
   WorkhorsePlugin,
-  PluginConfig,
   Factories,
   EventPayload,
 };
