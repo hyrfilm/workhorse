@@ -1,6 +1,6 @@
 import { WorkhorsePlugin } from '@/types';
 import { Emitter, Actions } from '@events';
-import { debug } from "@/util/logging.ts";
+import { debug } from '@/util/logging.ts';
 
 class PauseWhenOffline implements WorkhorsePlugin {
   public name = 'PauseWhenOffline';

@@ -25,7 +25,7 @@ import {
   StatusQuery,
 } from './db/sql';
 import { DuplicateTaskError, UnreachableError } from '@/errors.ts';
-import { Emitter, Notifications } from "@events";
+import { Emitter, Notifications } from '@events';
 
 function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
   const taskQueue: TaskQueue = {
