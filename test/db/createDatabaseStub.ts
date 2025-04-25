@@ -1,20 +1,20 @@
-import { QueryResult } from '@/types';
+import { QueryResult, RunQuery } from '@/types';
 import { schema } from '@/db/sql';
 import Database from 'better-sqlite3';
 
-function createDatabaseStub(): Promise<(query: string) => Promise<QueryResult[]>> {
+function createDatabaseStub(): Promise<RunQuery> {
   const db = new Database(':memory:');
   db.pragma('journal_mode = WAL');
   db.exec(schema);
 
-  async function runQuery(query: string): Promise<QueryResult[]> {
+  async function runQuery(query: string, ...values: unknown[]): Promise<QueryResult[]> {
     try {
-      const rows = db.prepare(query).all();
+      const rows = db.prepare(query).all(...values);
       return await Promise.resolve(rows as QueryResult[]);
     } catch (_e) {}
 
     try {
-      const row = db.prepare(query).get();
+      const row = db.prepare(query).get(...values);
       if (row == undefined) {
         return [];
       } else {
@@ -22,7 +22,7 @@ function createDatabaseStub(): Promise<(query: string) => Promise<QueryResult[]>
       }
     } catch (e) {
       if (e instanceof TypeError) {
-        db.prepare(query).run();
+        db.prepare(query).run(...values);
         return await Promise.resolve([]);
       } else {
         return Promise.reject(e);

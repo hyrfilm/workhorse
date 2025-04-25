@@ -8,7 +8,7 @@ type SqlExecutor = (
   ...params: unknown[]
 ) => Promise<QueryResult[]>;
 type QueryResult = Record<string, string | number | null>[];
-type RunQuery = (query: string) => Promise<QueryResult[]>;
+type RunQuery = (query: string, ...values: unknown[]) => Promise<QueryResult[]>;
 type SubscriptionHandler<K extends SubscriptionEvents> = (payload: WorkhorseEventMap[K]) => void;
 
 interface Workhorse {

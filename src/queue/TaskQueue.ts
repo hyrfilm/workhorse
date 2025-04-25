@@ -33,16 +33,16 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
       let query = '';
       switch (config.duplicates) {
         case DuplicateStrategy.FORBID:
-          query = addTaskQuery(taskId, payload);
+          query = addTaskQuery(/*taskId, payload*/);
           break;
         case DuplicateStrategy.IGNORE:
-          query = addTaskIfNotExistsQuery(taskId, payload);
+          query = addTaskIfNotExistsQuery(/*taskId, payload*/);
           break;
         default:
           query = 'This should not be possible' as never;
       }
       try {
-        await sql(query);
+        await sql(query, taskId, JSON.stringify(payload));
         Emitter.emit(Notifications.Task.Added, { taskId });
       } catch (e) {
         if (e instanceof Error) {

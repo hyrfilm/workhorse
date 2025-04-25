@@ -46,19 +46,17 @@ function toTaskRow(dbRow: unknown): TaskRow {
   } as TaskRow;
 }
 
-function addTaskQuery(taskId: string, payload: Payload): string {
-  const jsonPayload = JSON.stringify(payload);
+function addTaskQuery(): string {
   return `
         INSERT INTO task_queue (task_id, task_payload, status_id)
-        VALUES ('${taskId}', '${jsonPayload}', ${TaskState.queued});
+        VALUES (?, ?, ${TaskState.queued});
     `;
 }
 
-function addTaskIfNotExistsQuery(taskId: string, payload: Payload): string {
-  const jsonPayload = JSON.stringify(payload);
+function addTaskIfNotExistsQuery(): string {
   return `
         INSERT OR IGNORE INTO task_queue (task_id, task_payload, status_id)
-        VALUES ('${taskId}', '${jsonPayload}', ${TaskState.queued});
+        VALUES (?, ?, ${TaskState.queued});
     `;
 }
 
