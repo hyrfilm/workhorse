@@ -4,6 +4,8 @@ import { describe, expect, test, vi } from 'vitest';
 import { seconds } from '@/util/time.ts';
 import { createDatabaseStub } from './db/createDatabaseStub.ts';
 import { createWorkhorse } from '@/workhorse.ts';
+import { TaskMonitor } from '@/plugins/TaskMonitor.ts';
+import { Subscriptions } from '@/events/eventTypes.ts';
 
 vi.mock('@/db/createDatabase.ts', () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),
@@ -47,25 +49,28 @@ const assertTask = (maybeTask: unknown): maybeTask is Task => {
   return isValidTask(maybeTask);
 };
 
-describe('api tests', () => {
+const executorStrategies = () => [TaskExecutorStrategy.SERIAL, TaskExecutorStrategy.PARALLEL, TaskExecutorStrategy.SERIAL];
+
+describe.concurrent('api tests', () => {
   test(
-    'Typical usage - enqueue 1000 tasks & process them (serial strategy with manual polling)',
+    'Typical usage - enqueue 0-1000 tasks & process them (with manual polling)',
     { timeout: seconds(30) },
     async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.scheduler(),
-          fc.array(
+          fc.array(                                   
             fc.record({
               taskId: fc.uuid({ version: 4 }),
               payload: fc.jsonValue(),
             }),
-            { minLength: 0, maxLength: 10 }
+            { minLength: 0, maxLength: 1000 },
           ),
-          async (scheduler, tasksToRun) => {
+          fc.constantFrom(...executorStrategies()),
+          fc.integer({min: 1, max: 10 }),
+          async (scheduler, tasksToRun, executorStrategy, concurrency) => {
             // TODO: Move this check + error handling to workhorse.queue() and verify payload can be stringified and read back to itself
             tasksToRun = tasksToRun.filter(isValidTask);
-
             const taskResults: TaskResult[] = [];
 
             const runTask: RunTask = async (taskId, payload) => {
@@ -73,44 +78,39 @@ describe('api tests', () => {
               return Promise.resolve(undefined);
             };
 
-            const queueAndPoll = async (task: Task) => {
-              await workhorse.poll();
-              await workhorse.queue(task.taskId, task.payload);
-            };
-
-            // create a workhorse instance with the default config
             const workhorse = await createWorkhorse(runTask, {
-              taskExecution: TaskExecutorStrategy.DETACHED,
-              concurrency: 10,
+              taskExecution: executorStrategy,
+              concurrency,
             });
-            //setLogLevel('debug');
-            for (const task of tasksToRun) {
-              assertTask(task);
-              //console.log('Scheduling: ', task.taskId);
-              const f = scheduler.scheduleFunction(queueAndPoll);
-              f(task);
-            }
+
+            tasksToRun.forEach((task) => {
+              // eslint-disable-next-line @typescript-eslint/no-floating-promises
+              scheduler.schedule(workhorse.queue(task.taskId, task.payload));
+            });
+            
             expect(scheduler.count()).toBe(tasksToRun.length);
 
             await scheduler.waitAll();
 
             expect(scheduler.count()).toBe(0);
 
-            let status = await workhorse.getStatus();
-            while (status.queued > 0 || status.executing > 0) {
-              await workhorse.poll();
-              status = await workhorse.getStatus();
-              expect(status.failed).toBe(0);
-            }
-            expect(status.queued).toBe(0);
-            expect(status.failed).toBe(0);
-            expect(status.executing).toBe(0);
-            expect(status.successful).toEqual(tasksToRun.length);
+            const taskMonitor = { remaining: tasksToRun.length };
+            workhorse.subscribe(Subscriptions.TaskMonitor.Updated, (monitor) => {
+              taskMonitor.remaining = monitor.remaining;
+            });
 
-            expect(taskResults).toEqual(tasksToRun);
+            while (taskMonitor.remaining !== 0) {
+              await workhorse.poll();
+            }
+            const status = await workhorse.getStatus();
+            expect(status).toEqual({ queued: 0, failed: 0, executing: 0, successful: tasksToRun.length});
+            // We do this because since we transforms the payload of each task to JSON there's
+            // a small chance that when parsed it will differ from the original 
+            // (eg JSON.parse(JSON.stringify({"": -0})) !== JSON.parse(JSON.stringify({"": 0})))
+            expect(JSON.stringify(taskResults)).toEqual(JSON.stringify(tasksToRun));
           }
         ),
-        { verbose: 2, numRuns: 10 }
+        { verbose: 2, numRuns: 500 }
       );
     }
   );
