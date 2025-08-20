@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { Payload, RunTask, TaskExecutorStrategy, TaskResult } from '@/types';
+import { RunTask, TaskExecutorStrategy, TaskResult } from '@/types';
 import { describe, expect, test, vi } from 'vitest';
 import { seconds } from '@/util/time.ts';
 import { createDatabaseStub } from './db/createDatabaseStub.ts';
@@ -9,11 +9,6 @@ import { Subscriptions } from '@/events/eventTypes.ts';
 vi.mock('@/db/createDatabase.ts', () => ({
   createDatabase: vi.fn(async () => await createDatabaseStub()),
 }));
-
-interface Task {
-  taskId: string;
-  payload: Payload;
-}
 
 // TODO: This should be done when queuing and immediately throw OR allow primitives
 const isValidTask = (task: unknown) => {
