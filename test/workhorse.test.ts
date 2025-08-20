@@ -4,7 +4,6 @@ import { describe, expect, test, vi } from 'vitest';
 import { seconds } from '@/util/time.ts';
 import { createDatabaseStub } from './db/createDatabaseStub.ts';
 import { createWorkhorse } from '@/workhorse.ts';
-import { TaskMonitor } from '@/plugins/TaskMonitor.ts';
 import { Subscriptions } from '@/events/eventTypes.ts';
 
 vi.mock('@/db/createDatabase.ts', () => ({
@@ -43,10 +42,6 @@ const isValidTask = (task: unknown) => {
     return false;
   }
   return true;
-};
-
-const assertTask = (maybeTask: unknown): maybeTask is Task => {
-  return isValidTask(maybeTask);
 };
 
 const executorStrategies = () => [TaskExecutorStrategy.SERIAL, TaskExecutorStrategy.PARALLEL, TaskExecutorStrategy.SERIAL];
