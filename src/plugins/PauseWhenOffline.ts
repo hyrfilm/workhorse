@@ -1,4 +1,4 @@
-import { WorkhorsePlugin } from '@/types';
+import { WorkhorsePlugin, CommandDispatcher } from '@/types';
 import { Emitter, Actions } from '@events';
 import { debug } from '@/util/logging.ts';
 
@@ -11,7 +11,7 @@ class PauseWhenOffline implements WorkhorsePlugin {
     this.online = true;
   }
 
-  onStart = (): void => {
+  onStart = (_dispatcher: CommandDispatcher): void => {
     this.online = navigator.onLine;
     if (!this.online) {
       this.handleOffline();

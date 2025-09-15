@@ -41,7 +41,6 @@ const initialize = async (
   const dispatcher = createDispatcher(taskQueue, executorPool);
 
   const pluginHandler = createPluginHandler();
-  pluginHandler.startPlugins(config, dispatcher);
 
   const poller = async () => {
     await dispatcher.poll();

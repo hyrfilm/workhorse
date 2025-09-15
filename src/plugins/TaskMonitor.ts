@@ -1,4 +1,4 @@
-import { WorkhorsePlugin, EventPayload } from '@/types';
+import { WorkhorsePlugin, EventPayload, CommandDispatcher } from '@/types';
 import { Emitter, Notifications } from '@events';
 import { Subscriptions } from '@/events/eventTypes.ts';
 import {debug} from "@/util/logging.ts";
@@ -28,7 +28,7 @@ class TaskMonitor implements WorkhorsePlugin {
     this.notify();
   };
 
-  onStart(): void {
+  onStart(_dispatcher: CommandDispatcher): void {
     debug(this.name, ' starting');
     Emitter.on(Notifications.Task.Added, this.add);
     Emitter.on(Notifications.Task.Success, this.remove);

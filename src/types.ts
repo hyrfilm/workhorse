@@ -36,7 +36,7 @@ interface CommandDispatcher {
 
 interface WorkhorsePlugin {
   name: string;
-  onStart(): void;
+  onStart(dispatcher: CommandDispatcher): void;
   onStop(): void;
 }
 

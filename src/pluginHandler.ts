@@ -9,10 +9,10 @@ interface PluginHandler {
 const createPluginHandler = (): PluginHandler => {
   const plugins: WorkhorsePlugin[] = [];
   return {
-    startPlugins: (config: WorkhorseConfig) => {
+    startPlugins: (config: WorkhorseConfig, dispatcher: CommandDispatcher) => {
       config.plugins.forEach((plugin) => {
         try {
-          plugin.onStart();
+          plugin.onStart(dispatcher);
         } catch (e) {
           error(`Plugin ${plugin.name} failed to start: ${e}`);
         }
