@@ -16,7 +16,7 @@ const log = (...s: string[]): void => {
 };
 
 const error = (...s: string[]): void => {
-  loglevel.info(prefix, 'ERROR - ', ...s);
+  loglevel.error(prefix, 'ERROR - ', ...s);
 };
 
 export { log, error, debug, setLogLevel };
