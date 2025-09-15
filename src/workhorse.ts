@@ -41,7 +41,7 @@ const initialize = async (
   const dispatcher = createDispatcher(taskQueue, executorPool);
 
   const pluginHandler = createPluginHandler();
-  pluginHandler.startPlugins(config, dispatcher);
+  pluginHandler.startPlugins(config);
 
   const poller = async () => {
     await dispatcher.poll();
@@ -116,17 +116,6 @@ const createWorkhorse = async (
   };
 
   await dispatcher.startExecutors();
-
-  try {
-    pluginHandler.startPlugins(runtimeConfig.options, dispatcher);
-  } catch (e) {
-    error('An exception occurred when starting plugins.');
-    if (e instanceof Error) {
-      error(e.message);
-    }
-    throw new Error('Failed to start');
-  }
-
   return workhorse;
 };
 

@@ -1,8 +1,8 @@
-import { WorkhorseConfig, CommandDispatcher, WorkhorsePlugin } from '@types';
+import { WorkhorseConfig, WorkhorsePlugin } from '@types';
 import { error, debug } from './util/logging';
 
 interface PluginHandler {
-  startPlugins(config: WorkhorseConfig, dispatcher: CommandDispatcher): void;
+  startPlugins(config: WorkhorseConfig): void;
   stopPlugins(): void;
 }
 
@@ -15,6 +15,7 @@ const createPluginHandler = (): PluginHandler => {
           plugin.onStart();
         } catch (e) {
           error(`Plugin ${plugin.name} failed to start: ${e}`);
+          throw e;
         }
         debug(`Started plugin: ${plugin.name}`);
         plugins.push(plugin);
