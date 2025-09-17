@@ -17,7 +17,7 @@ export default defineConfig({
   root: resolve(__dirname, 'examples'),
   build: {
     target: "es2022",
-    outDir: "dist",
+    outDir: resolve(__dirname, 'examples/dist'),
     emptyOutDir: true,
     emitAssets: true,
   },

@@ -20,18 +20,20 @@
   ],
   "version": "0.2.2",
   "type": "module",
-  "sideffects": false,
+  "sideEffects": false,
+  "main": "./dist/workhorse.js",
+  "module": "./dist/workhorse.js",
+  "types": "./dist/workhorse.d.ts",
   "exports": {
     ".": {
       "import": "./dist/workhorse.js",
       "types": "./dist/workhorse.d.ts"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
   ],
-  "main": "./dist/workhorse.js",
-  "types": "./dist/workhorse.d.ts",
   "scripts": {
     "clean": "rm -rf dist && rm -rf examples/dist && rm -rf types",
     "lint": "npx eslint ./src",
