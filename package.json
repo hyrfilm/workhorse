@@ -1,6 +1,6 @@
 {
   "name": "@hyrfilm/workhorse",
-   "description": "Transactional task queue for the browser with support for OPFS, localStorage, sessionStorage, in-memory",
+  "description": "Transactional task queue for the browser with support for OPFS, localStorage, sessionStorage, in-memory",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hyrfilm/workhorse.git"
@@ -18,17 +18,18 @@
     "in-memory",
     "database"
   ],
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/workhorse.js",
   "module": "./dist/workhorse.js",
   "types": "./dist/workhorse.d.ts",
+  "main": "./dist/workhorse.cjs",
   "exports": {
     ".": {
       "import": "./dist/workhorse.js",
-      "types": "./dist/workhorse.d.ts"
+      "require": "./dist/workhorse.cjs"
     },
+    "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },
   "files": [

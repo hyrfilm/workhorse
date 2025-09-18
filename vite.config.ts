@@ -24,21 +24,10 @@ export default defineConfig({
             preserveEntrySignatures: 'exports-only',
             input: resolve(__dirname, 'src/index.ts'),
             output: [
-                // ESM
-                {
-                    format: 'es',
-                    entryFileNames: 'workhorse.js',
-                    chunkFileNames: 'chunks/[name]-[hash].js',
-                    assetFileNames: 'assets/[name]-[hash][extname]',
-                },
-                // CommonJS for compatibility
-                {
-                    format: 'cjs',
-                    entryFileNames: 'workhorse.cjs',
-                    inlineDynamicImports: true,
-                    assetFileNames: 'assets/[name]-[hash][extname]',
-                },
+                { format: 'es', entryFileNames: 'workhorse.js', inlineDynamicImports: true, assetFileNames: 'assets/[name]-[hash][extname]' },
+                { format: 'cjs', entryFileNames: 'workhorse.cjs', inlineDynamicImports: true, assetFileNames: 'assets/[name]-[hash][extname]' },
             ],
+
         },
     },
     plugins: [
