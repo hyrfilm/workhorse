@@ -6,7 +6,7 @@ import {seconds} from "../src/util/time.ts";
 import {TaskExecutorStrategy} from "../src/types";
 
 export async function run(): Promise<void> {
-    log.setDefaultLevel(log.levels.INFO);
+    log.setDefaultLevel(log.levels.DEBUG);
 
     const numTasks = 1000;
 

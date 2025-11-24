@@ -1,7 +1,6 @@
 import { DuplicateStrategy, TaskExecutorStrategy, WorkhorseConfig } from './types';
 import { millisec, minutes, seconds } from './util/time';
 import {TaskMonitor} from "@/plugins/TaskMonitor.ts";
-import {PauseWhenOffline} from "@/plugins/PauseWhenOffline.ts";
 
 const defaults: WorkhorseConfig = {
   concurrency: 1,
@@ -23,7 +22,8 @@ const defaults: WorkhorseConfig = {
     maxTime: minutes(15),
   },
   duplicates: DuplicateStrategy.IGNORE,
-  plugins: [ new TaskMonitor(), new PauseWhenOffline() ],
+  defaultPlugins: [ new TaskMonitor() ],
+  plugins: [],
 };
 
 const defaultOptions = (): WorkhorseConfig => {

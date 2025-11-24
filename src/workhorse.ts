@@ -40,8 +40,9 @@ const initialize = async (
   const executorPool = factories.createExecutorPool(config, taskExecutors);
   const dispatcher = createDispatcher(taskQueue, executorPool);
 
-  const pluginHandler = createPluginHandler();
-  pluginHandler.startPlugins(config);
+  const allPlugins = [...config.defaultPlugins, ...config.plugins];
+  const pluginHandler = createPluginHandler(allPlugins);
+  config.plugins = pluginHandler.startPlugins(config);
 
   const poller = async () => {
     await dispatcher.poll();
@@ -68,7 +69,7 @@ const createWorkhorse = async (
   const runtimeConfig = {
     options: { ...defaultOptions(), ...options },
     factories: { ...defaultFactories(), ...factories },
-    plugins: [new TaskMonitor()],
+    defaultPlugins: [new TaskMonitor()],
   };
   const result = await initialize(run, runtimeConfig.options, runtimeConfig.factories);
   const [taskQueue, dispatcher, poller, pluginHandler] = result;

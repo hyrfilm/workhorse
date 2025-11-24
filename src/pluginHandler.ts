@@ -2,15 +2,14 @@ import { WorkhorseConfig, WorkhorsePlugin } from '@types';
 import { error, debug } from './util/logging';
 
 interface PluginHandler {
-  startPlugins(config: WorkhorseConfig): void;
+  startPlugins(config: WorkhorseConfig): WorkhorsePlugin[];
   stopPlugins(): void;
 }
 
-const createPluginHandler = (): PluginHandler => {
-  const plugins: WorkhorsePlugin[] = [];
+const createPluginHandler = (plugins: WorkhorsePlugin[]): PluginHandler => {
   return {
-    startPlugins: (config: WorkhorseConfig) => {
-      config.plugins.forEach((plugin) => {
+    startPlugins: () => {
+      return plugins.map((plugin) => {
         try {
           plugin.onStart();
         } catch (e) {
@@ -18,7 +17,7 @@ const createPluginHandler = (): PluginHandler => {
           throw e;
         }
         debug(`Started plugin: ${plugin.name}`);
-        plugins.push(plugin);
+        return plugin
       });
     },
 

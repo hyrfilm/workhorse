@@ -60,6 +60,7 @@ interface WorkhorseConfig {
       timeout?: number;
     };
   };
+  defaultPlugins: WorkhorsePlugin[];
   plugins: WorkhorsePlugin[];
 }
 
