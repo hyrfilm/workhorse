@@ -6,7 +6,6 @@ import {
   WorkhorseConfig,
 } from '@/types.ts';
 import { UnreachableError } from '@/errors.ts';
-import { Actions, Emitter } from '@/events';
 
 interface PollStrategies {
   pollSerial(): Promise<void>;
@@ -93,14 +92,6 @@ const createExecutorPool = (
     },
   } as const;
   
-  Emitter.on(Actions.Executors.Start, async () => {
-    await executorPool.startAll();
-  });
-
-  Emitter.on(Actions.Executors.Stop, async () => {
-    await executorPool.stopAll();
-  });
-
   return executorPool;
 };
 

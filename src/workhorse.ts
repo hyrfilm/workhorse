@@ -17,7 +17,7 @@ import { createPeriodicJob, PeriodicJob } from '@/util/periodic.ts';
 import { error, setLogLevel } from '@/util/logging.ts';
 import { createPluginHandler, PluginHandler } from '@/pluginHandler.ts';
 import { Emitter, waitForReturnValue } from '@events';
-import { SubscriptionEvents, WorkhorseEventMap } from '@/events/eventTypes.ts';
+import { Actions, SubscriptionEvents, WorkhorseEventMap } from '@/events/eventTypes.ts';
 import { TaskMonitor } from '@/plugins/TaskMonitor.ts';
 
 type RuntimeConfig = [TaskQueue, CommandDispatcher, PeriodicJob, PluginHandler];
@@ -55,6 +55,13 @@ const initialize = async (
   const pollingJob = createPeriodicJob(poller, config.poll.interval);
 
   if (config.poll.auto) {
+    Emitter.on(Actions.Poller.Pause, () => {
+      pollingJob.pause();
+    });
+    Emitter.on(Actions.Poller.Resume, () => {
+      pollingJob.resume();
+    });
+
     pollingJob.start();
   }
 
