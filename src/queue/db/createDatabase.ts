@@ -7,12 +7,12 @@ async function createSchema(sql: SqlExecutor): Promise<void> {
   await sql(schema);
 }
 
-const createDatabase = async (config: WorkhorseConfig): Promise<RunQuery> => {
-  const dbPath = config.dbPath ?? 'workhorse.sqlite3';
-  const { deleteDatabaseFile } = new SQLocal(dbPath);
+//TODO: This just one big dummy implementation
+const createDatabase = async (_config: WorkhorseConfig): Promise<RunQuery> => {
+  const { deleteDatabaseFile } = new SQLocal('database.sqlite3');
   await deleteDatabaseFile();
   // stored in the origin private file system
-  const { sql } = new SQLocal(dbPath);
+  const { sql } = new SQLocal('database.sqlite3');
   await createSchema(sql);
   return createQueryRunnerSqlocal(sql);
 };

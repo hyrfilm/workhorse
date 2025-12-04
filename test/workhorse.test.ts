@@ -39,11 +39,7 @@ const isValidTask = (task: unknown) => {
   return true;
 };
 
-const executorStrategies = () => [
-  TaskExecutorStrategy.SERIAL,
-  TaskExecutorStrategy.PARALLEL,
-  TaskExecutorStrategy.SERIAL,
-];
+const executorStrategies = () => [TaskExecutorStrategy.SERIAL, TaskExecutorStrategy.PARALLEL, TaskExecutorStrategy.SERIAL];
 
 describe.concurrent('api tests', () => {
   test(
@@ -53,15 +49,15 @@ describe.concurrent('api tests', () => {
       await fc.assert(
         fc.asyncProperty(
           fc.scheduler(),
-          fc.array(
+          fc.array(                                   
             fc.record({
               taskId: fc.uuid({ version: 4 }),
               payload: fc.jsonValue(),
             }),
-            { minLength: 0, maxLength: 1000 }
+            { minLength: 0, maxLength: 1000 },
           ),
           fc.constantFrom(...executorStrategies()),
-          fc.integer({ min: 1, max: 10 }),
+          fc.integer({min: 1, max: 10 }),
           async (scheduler, tasksToRun, executorStrategy, concurrency) => {
             // TODO: Move this check + error handling to workhorse.queue() and verify payload can be stringified and read back to itself
             tasksToRun = tasksToRun.filter(isValidTask);
@@ -81,7 +77,7 @@ describe.concurrent('api tests', () => {
               // eslint-disable-next-line @typescript-eslint/no-floating-promises
               scheduler.schedule(workhorse.queue(task.taskId, task.payload));
             });
-
+            
             expect(scheduler.count()).toBe(tasksToRun.length);
 
             await scheduler.waitAll();
@@ -97,14 +93,9 @@ describe.concurrent('api tests', () => {
               await workhorse.poll();
             }
             const status = await workhorse.getStatus();
-            expect(status).toEqual({
-              queued: 0,
-              failed: 0,
-              executing: 0,
-              successful: tasksToRun.length,
-            });
+            expect(status).toEqual({ queued: 0, failed: 0, executing: 0, successful: tasksToRun.length});
             // We do this because since we transforms the payload of each task to JSON there's
-            // a small chance that when parsed it will differ from the original
+            // a small chance that when parsed it will differ from the original 
             // (eg JSON.parse(JSON.stringify({"": -0})) !== JSON.parse(JSON.stringify({"": 0})))
             expect(JSON.stringify(taskResults)).toEqual(JSON.stringify(tasksToRun));
           }

@@ -5,28 +5,35 @@ import { debug } from '@/util/logging.ts';
 class PauseWhenOffline implements WorkhorsePlugin {
   public name = 'PauseWhenOffline';
 
+  private online;
+
+  constructor() {
+    this.online = true;
+  }
+
   onStart = (): void => {
-    if (!navigator.onLine) {
-      this.pausePoller();
+    this.online = navigator.onLine;
+    if (!this.online) {
+      this.handleOffline();
     }
 
-    window.addEventListener('online', this.resumePoller);
-    window.addEventListener('offline', this.pausePoller);
+    window.addEventListener('online', this.handleOnline);
+    window.addEventListener('offline', this.handleOffline);
   };
 
   onStop = (): void => {
-    window.removeEventListener('online', this.resumePoller);
-    window.removeEventListener('offline', this.pausePoller);
+    window.removeEventListener('online', this.handleOnline);
+    window.removeEventListener('offline', this.handleOffline);
   };
 
-  private resumePoller = (): void => {
+  handleOnline = (): void => {
     debug('Online - processing queue');
-    Emitter.emit(Actions.Poller.Resume, []);
+    Emitter.emit(Actions.Executors.Start, []);
   };
 
-  private pausePoller = (): void => {
+  handleOffline = (): void => {
     debug('Offline - pause processing queue');
-    Emitter.emit(Actions.Poller.Pause, []);
+    Emitter.emit(Actions.Executors.Stop, []);
   };
 }
 

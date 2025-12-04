@@ -1,16 +1,16 @@
+import {createWorkhorse} from '../src/workhorse';
+import {PauseWhenOffline} from '../src/plugins/PauseWhenOffline.ts'
 import log from "loglevel"
 import {appendHTMLTask} from "./tasks";
-import {seconds} from '@/util/time.ts';
-import {TaskExecutorStrategy} from '@types';
-
-import { createWorkhorse } from 'src';
+import {seconds} from "../src/util/time.ts";
+import {TaskExecutorStrategy} from "../src/types";
 
 export async function run(): Promise<void> {
-    log.setDefaultLevel(log.levels.DEBUG);
+    log.setDefaultLevel(log.levels.INFO);
 
     const numTasks = 1000;
 
-    const options = { taskExecution: TaskExecutorStrategy.SERIAL, concurrency: 1 };
+    const options = { taskExecution: TaskExecutorStrategy.SERIAL, concurrency: 1, plugins: [new PauseWhenOffline()] };
     const workhorse = await createWorkhorse(appendHTMLTask, options);
     log.info("Adding tasks...");
 
@@ -30,6 +30,6 @@ export async function run(): Promise<void> {
     async function updateStatus(): Promise<void> {
         const status = await workhorse.getStatus();
         el.innerHTML = JSON.stringify(status);
-        setTimeout(() => updateStatus, 100);
+        setTimeout(updateStatus, 100);
     }
 }

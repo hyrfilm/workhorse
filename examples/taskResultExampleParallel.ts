@@ -1,10 +1,9 @@
-import { createWorkhorse } from '@/workhorse.ts';
-import * as plugins from '@/plugins';
+import { createWorkhorse } from "../src/workhorse.ts";
 import * as tasks from "./tasks.ts";
-import { millisec, seconds, sleep } from '@/util/time.ts';
-import { log, setLogLevel } from '@/util/logging.ts';
+import { millisec, seconds, sleep } from "../src/util/time.ts";
+import { log, setLogLevel } from "../src/util/logging.ts";
 import { v4 as uuidv4 } from 'uuid';
-import { TaskExecutorStrategy } from '@types';
+import { TaskExecutorStrategy } from "../src/types.ts";
 
 export async function run(): Promise<void> {
     setLogLevel("info");
@@ -13,20 +12,11 @@ export async function run(): Promise<void> {
 
     const numTasks = 100;
     const concurrency = 5;
-    const workhorse = await createWorkhorse(tasks.jsonRequestTask,
-      {
-        taskExecution: TaskExecutorStrategy.DETACHED,
-        concurrency,
-        poll: { auto: true, pre: { wait: 'ready'},
-          interval: millisec(100)},
-        plugins: [ new plugins.PauseWhenOffline() ]
-      }
-    );
+    const workhorse = await createWorkhorse(tasks.jsonRequestTask, { taskExecution: TaskExecutorStrategy.DETACHED, concurrency, poll: { auto: true, pre: { wait: 'ready'}, interval: millisec(100)} } );
 
     const container = document.getElementById('tasks');
     const description = document.createElement('h4');
-    description.textContent = `Queues ${numTasks} requests and processes them in parallel using ${concurrency} workers.<br>`;
-    description.textContent = `This instance is configured to stop polling when it detect being offline, you can see that in the console.`;
+    description.textContent = `Queues ${numTasks} requests and processes them in parallel using ${concurrency} workers.`;
     container!.appendChild(description);
 
     const taskIds: Record<string, string> = {}
