@@ -2,10 +2,14 @@ import { setup, fromPromise, createActor } from 'xstate';
 
 const startEvent = { type: 'start' };
 const stopEvent = { type: 'stop' };
+const pauseEvent = { type: 'pause' };
+const resumeEvent = { type: 'resume' };
 
 interface PeriodicJob {
   start(): void;
   stop(): void;
+  pause(): void;
+  resume(): void;
 }
 
 const createPeriodicJob = (func: () => Promise<void>, interval: number): PeriodicJob => {
@@ -16,6 +20,7 @@ const createPeriodicJob = (func: () => Promise<void>, interval: number): Periodi
     })
   );
   actor.start();
+
   return {
     start: () => {
       actor.send(startEvent);
@@ -23,13 +28,19 @@ const createPeriodicJob = (func: () => Promise<void>, interval: number): Periodi
     stop: () => {
       actor.send(stopEvent);
     },
+    pause: () => {
+      actor.send(pauseEvent);
+    },
+    resume: () => {
+      actor.send(resumeEvent);
+    },
   };
 };
 
 const machine = setup({
   types: {
     context: {} as object,
-    events: {} as typeof startEvent | typeof stopEvent,
+    events: {} as typeof startEvent | typeof stopEvent | typeof pauseEvent | typeof resumeEvent,
   },
   actors: {
     runJob: fromPromise(async () => {}),
@@ -47,12 +58,15 @@ const machine = setup({
       },
     },
     running: {
-      initial: 'invoking',
       on: {
         stop: {
           target: 'idle',
         },
+        pause: {
+          target: 'paused',
+        },
       },
+      initial: 'invoking',
       states: {
         invoking: {
           invoke: {
@@ -72,6 +86,16 @@ const machine = setup({
               target: 'invoking',
             },
           },
+        },
+      },
+    },
+    paused: {
+      on: {
+        resume: {
+          target: 'running',
+        },
+        stop: {
+          target: 'idle',
         },
       },
     },

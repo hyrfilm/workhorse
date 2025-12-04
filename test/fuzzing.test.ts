@@ -17,8 +17,9 @@ describe('fuzz tests - atomicity', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.scheduler(),
-
+        // generate array of unique task ids
         fc.uniqueArray(fc.nat(), { minLength: 1, maxLength: 36 }),
+        // concurrency amount
         fc.integer({ min: 20, max: 100 }),
         async (scheduler, taskIds, concurrency) => {
           const executedTasks: string[] = [];
