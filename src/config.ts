@@ -5,7 +5,7 @@ import { TaskMonitor } from '@/plugins/TaskMonitor.ts';
 const defaults: WorkhorseConfig = {
   concurrency: 1,
   taskExecution: TaskExecutorStrategy.SERIAL,
-  logLevel: 'debug',
+  logLevel: 'info',
 
   poll: {
     auto: false,
