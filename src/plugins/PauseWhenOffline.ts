@@ -5,12 +5,7 @@ import { debug } from '@/util/logging.ts';
 class PauseWhenOffline implements WorkhorsePlugin {
   public name = 'PauseWhenOffline';
 
-  private listening = false;
-
   onStart = (): void => {
-    if (this.listening) return;
-    this.listening = true;
-
     if (!navigator.onLine) {
       this.pausePoller();
     }
@@ -20,9 +15,6 @@ class PauseWhenOffline implements WorkhorsePlugin {
   };
 
   onStop = (): void => {
-    if (!this.listening) return;
-    this.listening = false;
-
     window.removeEventListener('online', this.resumePoller);
     window.removeEventListener('offline', this.pausePoller);
   };
