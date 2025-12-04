@@ -37,7 +37,7 @@ describe('PauseWhenOffline', () => {
 
     plugin.onStart();
 
-    expect(recorded).toEqual([{ type: Actions.Poller.Pause}]);
+    expect(recorded).toEqual([{ type: Actions.Poller.Pause }]);
     plugin.onStop();
   });
 
@@ -47,11 +47,11 @@ describe('PauseWhenOffline', () => {
     plugin.onStart();
 
     window.dispatchEvent(new Event('offline'));
-    expect(recorded).toEqual([{ type: Actions.Poller.Pause, }]);
+    expect(recorded).toEqual([{ type: Actions.Poller.Pause }]);
 
     recorded.length = 0;
     window.dispatchEvent(new Event('online'));
-    expect(recorded).toEqual([{ type: Actions.Poller.Resume}]);
+    expect(recorded).toEqual([{ type: Actions.Poller.Resume }]);
 
     plugin.onStop();
 

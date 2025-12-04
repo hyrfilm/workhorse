@@ -60,10 +60,10 @@ const machine = setup({
     running: {
       on: {
         stop: {
-          target: "idle",
+          target: 'idle',
         },
         pause: {
-          target: "paused",
+          target: 'paused',
         },
       },
       initial: 'invoking',
@@ -92,13 +92,13 @@ const machine = setup({
     paused: {
       on: {
         resume: {
-          target: "running",
+          target: 'running',
         },
         stop: {
-          target: "idle",
-        }
+          target: 'idle',
+        },
       },
-    },    
+    },
     failed: {
       type: 'final',
     },

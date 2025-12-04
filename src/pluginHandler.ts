@@ -17,7 +17,7 @@ const createPluginHandler = (plugins: WorkhorsePlugin[]): PluginHandler => {
           throw e;
         }
         debug(`Started plugin: ${plugin.name}`);
-        return plugin
+        return plugin;
       });
     },
 
