@@ -18,7 +18,7 @@
     "in-memory",
     "database"
   ],
-  "version": "0.2.6",
+  "version": "0.3.0",
   "type": "module",
   "sideEffects": false,
   "module": "./dist/workhorse.js",
