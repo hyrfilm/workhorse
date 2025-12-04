@@ -1,6 +1,3 @@
-//import {createWorkhorse} from '@/workhorse.ts';
-//import {PauseWhenOffline} from '../src/plugins/PauseWhenOffline.ts'
-//import {plugins} from '@/workhorse.ts'
 import log from "loglevel"
 import {appendHTMLTask} from "./tasks";
 import {seconds} from '@/util/time.ts';

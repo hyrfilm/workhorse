@@ -46,6 +46,7 @@ export type Inspector =
   | undefined;
 
 interface WorkhorseConfig {
+  dbPath?: string;
   backoff: BackoffSettings;
   duplicates: DuplicateStrategy;
   concurrency: number;
