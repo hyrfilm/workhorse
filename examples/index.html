@@ -1,41 +1,63 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Workhorse Demo</title>
     <style>
-      a {
-        color: inherit;
-      }
-      a:visited {
-        color:inherit;
-      }
-      a:hover {
-        color:inherit;
-      }
+        a {
+            color: inherit;
+        }
+
+        a:visited {
+            color: inherit;
+        }
+
+        a:hover {
+            color: inherit;
+        }
     </style>
-  </head>
-  <body>
-    <div id="app">
-      <div id="example-selector" style="font-family: 'Courier New', monospace; margin-bottom: 1rem;">
+</head>
+<body>
+<div id="app">
+    <div id="example-selector" style="font-family: 'Courier New', monospace; margin-bottom: 1rem;">
         <span data-example="0" style="cursor:pointer;text-decoration:underline;">[marquee]</span>
         <span data-example="1" style="cursor:pointer;text-decoration:underline;">[sequential tasks]</span>
         <span data-example="2" style="cursor:pointer;text-decoration:underline;">[parallel tasks]</span>
         <span data-example="3" style="cursor:pointer;text-decoration:underline;">[high concurrency]</span>
+        <span data-example="4" style="cursor:pointer;text-decoration:underline;">[multiple instances]</span>
         <span>🐴</span>
         <a style="cursor:pointer;text-decoration:underline;" href="https://github.com/hyrfilm/workhorse">[github]</a>
-      </div>
-
-      <h2><pre>workhorse</pre></h2>
-      <h3><pre>browser-based task queue</pre></h3>
-      <h3><pre>persistent + transactional</pre></h3>
-      <h3>
-        <pre id="status"></pre>
-      </h3>
-      <pre id="tasks" style="font-size: 10px;"></pre>
-      <h3 id="tasks-lg"></h3>
     </div>
-    <script type="module" src="./main.ts"></script>
-  </body>
+
+    <h2>
+        <pre>workhorse</pre>
+    </h2>
+    <h3>
+        <pre>browser-based task queue</pre>
+    </h3>
+    <h3>
+        <pre>persistent + transactional</pre>
+    </h3>
+    <h3>
+        <pre id="status"></pre>
+    </h3>
+    <div style="display:flex; gap: 2rem; align-items:flex-start;">
+        <div>
+            <h4>Slow queue</h4>
+            <pre id="status-slow"></pre>
+            <pre id="log-slow" style="font-size: 10px; max-height: 500px; overflow:auto; border:1px solid #ddd; padding:4px;"></pre>
+        </div>
+        <div>
+            <h4>Fast queue</h4>
+            <pre id="status-fast"></pre>
+            <pre id="log-fast" style="font-size: 10px; max-height: 500px; overflow:auto; border:1px solid #ddd; padding:4px;"></pre>
+        </div>
+    </div>
+
+    <pre id="tasks" style="font-size: 10px;"></pre>
+    <h3 id="tasks-lg"></h3>
+</div>
+<script type="module" src="./main.ts"></script>
+</body>
 </html>

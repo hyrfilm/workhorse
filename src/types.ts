@@ -46,6 +46,7 @@ export type Inspector =
   | undefined;
 
 interface WorkhorseConfig {
+  dbPath?: string;
   backoff: BackoffSettings;
   duplicates: DuplicateStrategy;
   concurrency: number;
@@ -60,6 +61,7 @@ interface WorkhorseConfig {
       timeout?: number;
     };
   };
+  defaultPlugins: WorkhorsePlugin[];
   plugins: WorkhorsePlugin[];
 }
 

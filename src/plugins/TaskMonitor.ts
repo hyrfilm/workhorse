@@ -1,7 +1,7 @@
 import { WorkhorsePlugin, EventPayload } from '@/types';
 import { Emitter, Notifications } from '@events';
 import { Subscriptions } from '@/events/eventTypes.ts';
-import {debug} from "@/util/logging.ts";
+import { debug } from '@/util/logging.ts';
 
 class TaskMonitor implements WorkhorsePlugin {
   public name = 'TaskMonitor';
