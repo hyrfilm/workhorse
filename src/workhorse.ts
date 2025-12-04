@@ -17,7 +17,7 @@ import { createPeriodicJob, PeriodicJob } from '@/util/periodic.ts';
 import { error, setLogLevel } from '@/util/logging.ts';
 import { createPluginHandler, PluginHandler } from '@/pluginHandler.ts';
 import { Emitter, waitForReturnValue } from '@events';
-import { Actions, SubscriptionEvents, WorkhorseEventMap } from '@/events/eventTypes.ts';
+import { SubscriptionEvents, WorkhorseEventMap } from '@/events/eventTypes.ts';
 import { TaskMonitor } from '@/plugins/TaskMonitor.ts';
 
 type RuntimeConfig = [TaskQueue, CommandDispatcher, PeriodicJob, PluginHandler];
@@ -40,9 +40,8 @@ const initialize = async (
   const executorPool = factories.createExecutorPool(config, taskExecutors);
   const dispatcher = createDispatcher(taskQueue, executorPool);
 
-  const allPlugins = [...config.defaultPlugins, ...config.plugins];
-  const pluginHandler = createPluginHandler(allPlugins);
-  config.plugins = pluginHandler.startPlugins(config);
+  const pluginHandler = createPluginHandler();
+  pluginHandler.startPlugins(config);
 
   const poller = async () => {
     await dispatcher.poll();
@@ -55,13 +54,6 @@ const initialize = async (
   const pollingJob = createPeriodicJob(poller, config.poll.interval);
 
   if (config.poll.auto) {
-    Emitter.on(Actions.Poller.Pause, () => {
-      pollingJob.pause();
-    });
-    Emitter.on(Actions.Poller.Resume, () => {
-      pollingJob.resume();
-    });
-
     pollingJob.start();
   }
 
@@ -76,7 +68,7 @@ const createWorkhorse = async (
   const runtimeConfig = {
     options: { ...defaultOptions(), ...options },
     factories: { ...defaultFactories(), ...factories },
-    defaultPlugins: [new TaskMonitor()],
+    plugins: [new TaskMonitor()],
   };
   const result = await initialize(run, runtimeConfig.options, runtimeConfig.factories);
   const [taskQueue, dispatcher, poller, pluginHandler] = result;

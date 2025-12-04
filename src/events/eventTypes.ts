@@ -48,8 +48,8 @@ const Actions = {
     Stop: 'Executors.Stop',
   },
   Poller: {
-    Pause: 'Poller.Pause',
-    Resume: 'Poller.Resume',
+    Start: 'start',
+    Stop: 'stop',
   },
 } as const;
 
@@ -79,10 +79,6 @@ interface WorkhorseEventMap {
   // Actions
   'Executors.Start': [];
   'Executors.Stop': [];
-
-  'Poller.Pause': [];
-  'Poller.Resume': [];
-
   log: { message: string };
 
   // Subscriptions

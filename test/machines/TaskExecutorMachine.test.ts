@@ -3,7 +3,6 @@
 import { test, expect, describe } from 'vitest';
 import { DirectedGraphNode, getShortestPaths, toDirectedGraph } from '@xstate/graph';
 import { taskExecutorMachine } from '@/executor/TaskExecutor';
-import { defaultOptions } from '@/config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function assertPathMatches(path: any, name: string) {
@@ -24,8 +23,7 @@ function assertEdgeMaches(node: DirectedGraphNode, childIndex: number, names: st
 
 describe('TaskExecutorMachine Graph Tests', () => {
   test('shortestPaths', () => {
-    const config = defaultOptions();
-    const paths = getShortestPaths(taskExecutorMachine, { input: config });
+    const paths = getShortestPaths(taskExecutorMachine);
     expect(paths.length).toBe(8);
 
     assertPathMatches(paths[0], 'idle');

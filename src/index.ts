@@ -4,11 +4,9 @@ import type {
   BackoffSettings,
   DuplicateStrategy,
   TaskExecutorStrategy,
-} from '@types';
-
+} from './types.ts';
 import { defaultOptions } from './config.ts';
 import { createWorkhorse } from './workhorse.ts';
 
 export type { WorkhorseConfig, LogLevel, BackoffSettings, DuplicateStrategy, TaskExecutorStrategy };
 export { defaultOptions, createWorkhorse };
-export * as plugins from './plugins';

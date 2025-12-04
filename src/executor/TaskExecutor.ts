@@ -1,4 +1,4 @@
-import { createBackoff, Backoff } from '@/util/backoff.ts';
+import { createBackoff } from '@/util/backoff.ts';
 import { createActor, fromPromise, setup, waitFor } from 'xstate';
 import { WorkhorseConfig, TaskHooks, SingleTaskExecutor, Inspector } from '@/types.ts';
 
@@ -6,6 +6,8 @@ const reserveTask = async (): Promise<void> => {};
 const executeTask = async (): Promise<void> => {};
 const handleFailure = async (): Promise<void> => {};
 const handleSuccess = async (): Promise<void> => {};
+
+let backoff = createBackoff({ initial: 500, multiplier: 2.5, maxTime: 16000 });
 
 type Event = { type: 'start' } | { type: 'stop' } | { type: 'poll' };
 type Tag =
@@ -20,15 +22,13 @@ type Tag =
   | 'success'
   | 'critical';
 type Status = 'stopped' | 'started' | 'critical';
-type TaskExecutorContext = { backoff: Backoff };
 
 // Create the state machine setup
 const machineSetup = setup({
   types: {
-    context: {} as TaskExecutorContext,
+    context: {},
     events: {} as Event,
     tags: {} as Tag,
-    input: {} as WorkhorseConfig,
   },
   actors: {
     reserveHook: fromPromise(reserveTask),
@@ -37,16 +37,12 @@ const machineSetup = setup({
     successHook: fromPromise(handleSuccess),
   },
   delays: {
-    DELAY: ({ context }) => context.backoff.getBackoff(),
+    DELAY: () => backoff.getBackoff(),
   },
 });
 
 export const taskExecutorMachine = machineSetup.createMachine({
-  context: ({ input }) => {
-    return {
-      backoff: createBackoff(input.backoff),
-    };
-  },
+  context: {},
   id: 'TaskExecutor',
   initial: 'idle',
   states: {
@@ -91,8 +87,8 @@ export const taskExecutorMachine = machineSetup.createMachine({
     },
     taskSuccessful: {
       tags: ['success', 'executed', 'started'],
-      entry: ({ context }) => {
-        context.backoff.resetBackoff();
+      entry: () => {
+        backoff.resetBackoff();
       },
       invoke: {
         src: 'successHook',
@@ -110,8 +106,8 @@ export const taskExecutorMachine = machineSetup.createMachine({
       after: {
         DELAY: { target: 'continue' },
       },
-      exit: ({ context }) => {
-        context.backoff.increaseBackoff();
+      exit: () => {
+        backoff.increaseBackoff();
       }, // Increase backoff on exit
     },
     halted: {
@@ -126,6 +122,7 @@ export function createTaskExecutor(
   taskRunner: TaskHooks,
   inspect?: Inspector
 ): SingleTaskExecutor {
+  backoff = createBackoff(config.backoff);
   const machine = taskExecutorMachine.provide({
     actors: {
       reserveHook: fromPromise(taskRunner.reserveHook),
@@ -135,7 +132,7 @@ export function createTaskExecutor(
     },
   });
 
-  const actor = createActor(machine, { inspect, input: config });
+  const actor = createActor(machine, { inspect });
   actor.start();
 
   const taskExecutor = {

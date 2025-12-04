@@ -33,10 +33,10 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
       let query = '';
       switch (config.duplicates) {
         case DuplicateStrategy.FORBID:
-          query = addTaskQuery();
+          query = addTaskQuery(/*taskId, payload*/);
           break;
         case DuplicateStrategy.IGNORE:
-          query = addTaskIfNotExistsQuery();
+          query = addTaskIfNotExistsQuery(/*taskId, payload*/);
           break;
         default:
           query = 'This should not be possible' as never;
