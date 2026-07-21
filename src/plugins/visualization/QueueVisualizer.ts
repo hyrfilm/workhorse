@@ -2,23 +2,34 @@ import { TaskState, WorkhorsePlugin } from '@/types';
 import { Emitter, Notifications } from '@events';
 import { debug } from '@/util/logging.ts';
 
+const VIZ_CHANNEL = 'matrix-viz';
+
 interface Task {
   taskId: string;
   status: TaskState;
 }
 
+type VizMessage = { type: 'tasks'; tasks: Task[] } | { type: 'state:request' };
+
 class QueueVisualizer implements WorkhorsePlugin {
   public name = 'QueueVisualizer';
   private tasks: Task[] = [];
   private taskIndex: Record<string, number> = {};
-  private bc = new BroadcastChannel('matrix-viz');
+  private bc?: BroadcastChannel;
 
   private notifyVisualizer = () => {
-    this.bc.postMessage({ type: 'tasks', tasks: this.tasks });
+    const message: VizMessage = { type: 'tasks', tasks: this.tasks };
+    this.bc?.postMessage(message);
   };
 
-  private idx = (taskId: string): number => {
-    return this.taskIndex[taskId];
+  private setStatus = (taskId: string, status: TaskState): void => {
+    if (!(taskId in this.taskIndex)) {
+      // Tasks from other workhorse instances on the shared emitter
+      debug(this.name, ` ignoring unknown task: ${taskId}`);
+      return;
+    }
+    this.tasks[this.taskIndex[taskId]].status = status;
+    this.notifyVisualizer();
   };
 
   public add = (payload: { taskId: string }): void => {
@@ -28,23 +39,25 @@ class QueueVisualizer implements WorkhorsePlugin {
   };
 
   public reserve = (payload: { taskId: string }): void => {
-    // strictly speaking not correct but whatevzzzzz
-    this.tasks[this.idx(payload.taskId)].status = TaskState.executing;
-    this.notifyVisualizer();
+    this.setStatus(payload.taskId, TaskState.executing);
   };
 
   public success = (payload: { taskId: string }): void => {
-    this.tasks[this.idx(payload.taskId)].status = TaskState.successful;
-    this.notifyVisualizer();
+    this.setStatus(payload.taskId, TaskState.successful);
   };
 
   public failure = (payload: { taskId: string }): void => {
-    this.tasks[this.idx(payload.taskId)].status = TaskState.failed;
-    this.notifyVisualizer();
+    this.setStatus(payload.taskId, TaskState.failed);
   };
 
   onStart(): void {
     debug(this.name, ' starting');
+    this.bc = new BroadcastChannel(VIZ_CHANNEL);
+    this.bc.onmessage = (event: MessageEvent<VizMessage>) => {
+      if (event.data.type === 'state:request') {
+        this.notifyVisualizer();
+      }
+    };
     Emitter.on(Notifications.Task.Added, this.add);
     Emitter.on(Notifications.Task.Reserved, this.reserve);
     Emitter.on(Notifications.Task.Success, this.success);
@@ -57,11 +70,14 @@ class QueueVisualizer implements WorkhorsePlugin {
     Emitter.off(Notifications.Task.Success, this.success);
     Emitter.off(Notifications.Task.Reserved, this.reserve);
     Emitter.off(Notifications.Task.Added, this.add);
+    this.bc?.close();
+    this.bc = undefined;
   }
 }
 
-const createTask = (taskId: string, status: TaskState) => {
+const createTask = (taskId: string, status: TaskState): Task => {
   return { taskId, status };
 };
 
-export { QueueVisualizer };
+export { QueueVisualizer, VIZ_CHANNEL };
+export type { Task, VizMessage };

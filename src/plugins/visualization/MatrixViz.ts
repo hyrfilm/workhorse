@@ -1,11 +1,11 @@
 import { TaskState } from '@types';
+import { Task, VizMessage, VIZ_CHANNEL } from './QueueVisualizer.ts';
 
-interface Task {
-  taskId: string;
-  status: TaskState;
+interface QueueVisualizerHandle {
+  destroy(): void;
 }
 
-export function initQueueVisualizer(options?: { parent?: HTMLElement }): void {
+export function initQueueVisualizer(options?: { parent?: HTMLElement }): QueueVisualizerHandle {
   const parent = options?.parent ?? document.body;
   // Root container
   const container = document.createElement('div');
@@ -42,23 +42,14 @@ export function initQueueVisualizer(options?: { parent?: HTMLElement }): void {
   title.style.color = '#6b7280'; // gray-500
   title.textContent = 'MatrixViz';
 
-  const help = document.createElement('div');
-  help.style.color = '#4b5563'; // gray-600
-  help.style.marginTop = '0.5rem';
-  help.innerHTML =
-    'window.queueViz.addTask(id)<br/>' +
-    'window.queueViz.processTask(id)<br/>' +
-    'window.queueViz.completeTask(id, success)';
-
   info.appendChild(title);
-  info.appendChild(help);
   container.appendChild(info);
 
   // State
   let tasks: Task[] = [];
 
-  const COLS = 24*2;
-  const ROWS = 18*2;
+  const COLS = 24 * 2;
+  const ROWS = 18 * 2;
   const PADDING = 40;
 
   let cellSize = (canvas.width - PADDING * 2) / COLS;
@@ -114,20 +105,18 @@ export function initQueueVisualizer(options?: { parent?: HTMLElement }): void {
 
     ctx.restore();
   };
-  
 
-  // BroadcastChannel: request initial state
-  const bc = new BroadcastChannel('matrix-viz');
-  //bc.postMessage({ type: 'state:request' });
-  bc.onmessage = (message: MessageEvent) => {
-    console.log(message.data.type === 'tasks');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (message.data.type === 'tasks') {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      // @ts-ignore
-      tasks = message.data.tasks;
+  // BroadcastChannel: listen for task updates and request initial state
+  const bc = new BroadcastChannel(VIZ_CHANNEL);
+  bc.onmessage = (event: MessageEvent<VizMessage>) => {
+    if (event.data.type === 'tasks') {
+      tasks = event.data.tasks;
     }
   };
+  const stateRequest: VizMessage = { type: 'state:request' };
+  bc.postMessage(stateRequest);
+
+  let animationId = 0;
 
   const animate = (now: number) => {
     // Clear canvas
@@ -151,47 +140,42 @@ export function initQueueVisualizer(options?: { parent?: HTMLElement }): void {
     }
 
     // Draw tasks
-    for (let i=0;i<tasks.length;i++) {
+    const dialRotation = ((now / 1000) * Math.PI * 2) % (Math.PI * 2);
+    const stats = { executing: 0, successful: 0, failed: 0 };
+    for (let i = 0; i < tasks.length; i++) {
       const pos = getTaskPosition(i);
-      //let color = '#404080'; // fallback
-      let rotation = 0;
-
-      ctx.globalAlpha = 1;
-      //const pulse = Math.sin(elapsed * 2) * 0.1 + 0.9;
-      //const blink = Math.sin(elapsed * 8) > 0 ? 1 : 0.4;
-      //ctx.globalAlpha = blink;
-
 
       switch (tasks[i].status) {
         case TaskState.queued:
           drawCircle(pos.x, pos.y, circleRadius, '#00d4ff', 0, false);
           break;
         case TaskState.executing:
-          drawCircle(pos.x, pos.y, circleRadius, '#ffaa00', 0, true);
+          stats.executing++;
+          drawCircle(pos.x, pos.y, circleRadius, '#ffaa00', dialRotation, true);
           break;
         case TaskState.successful:
+          stats.successful++;
           drawCircle(pos.x, pos.y, circleRadius, '#00ff88', 0, true);
           break;
         case TaskState.failed:
+          stats.failed++;
           drawCircle(pos.x, pos.y, circleRadius, '#ff3366', 0, true);
           break;
         default:
       }
-
-      ctx.globalAlpha = 1;
     }
 
     // Stats labels
-    ctx.fillStyle = '#00d4ff';
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'right';
-    /*
-    ctx.fillText(`Added: ${stats.added}`, canvas.width - 20, 30);
+    ctx.fillStyle = '#00d4ff';
+    ctx.fillText(`Added: ${tasks.length}`, canvas.width - 20, 30);
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillText(`Executing: ${stats.executing}`, canvas.width - 20, 50);
     ctx.fillStyle = '#00ff88';
-    ctx.fillText(`Completed: ${stats.completed}`, canvas.width - 20, 50);
+    ctx.fillText(`Completed: ${stats.successful}`, canvas.width - 20, 70);
     ctx.fillStyle = '#ff3366';
-    ctx.fillText(`Failed: ${stats.failed}`, canvas.width - 20, 70);
-    */
+    ctx.fillText(`Failed: ${stats.failed}`, canvas.width - 20, 90);
 
     // Row/Col indicators
     ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';
@@ -205,10 +189,10 @@ export function initQueueVisualizer(options?: { parent?: HTMLElement }): void {
       ctx.fillText(i.toString(), PADDING + i * cellSize + cellSize / 2, PADDING - 10);
     }
 
-   requestAnimationFrame(animate);
+    animationId = requestAnimationFrame(animate);
   };
 
-  requestAnimationFrame(animate);
+  animationId = requestAnimationFrame(animate);
 
   // Handle resize
   const handleResize = () => {
@@ -219,8 +203,6 @@ export function initQueueVisualizer(options?: { parent?: HTMLElement }): void {
 
   window.addEventListener('resize', handleResize);
 
-  /*
-  // Optional: return a handle to destroy it
   return {
     destroy() {
       window.removeEventListener('resize', handleResize);
@@ -229,5 +211,4 @@ export function initQueueVisualizer(options?: { parent?: HTMLElement }): void {
       parent.removeChild(container);
     },
   };
-  */
 }
