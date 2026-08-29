@@ -3,13 +3,12 @@ import * as plugins from '@/plugins';
 import * as tasks from "./tasks.ts";
 import { millisec, seconds, sleep } from '@/util/time.ts';
 import { log, setLogLevel } from '@/util/logging.ts';
-import { v4 as uuidv4 } from 'uuid';
 import { TaskExecutorStrategy } from '@types';
 
 export async function run(): Promise<void> {
     setLogLevel("info");
 
-    log("Creating workhorse instance...");    
+    log("Creating workhorse instance...");
 
     const numTasks = 100;
     const concurrency = 5;
@@ -33,7 +32,7 @@ export async function run(): Promise<void> {
 
     for (let i = 0; i < numTasks; i++) {
       const newTask = document.createElement('div');
-      const taskId = uuidv4();
+      const taskId = crypto.randomUUID();
       taskIds[taskId] = taskId;
       newTask.id = taskId;
       newTask.textContent = `Task ${i+1}`;

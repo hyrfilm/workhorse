@@ -21,7 +21,7 @@ const Notifications = {
   // taskId passed as a parameter
   Task: {
     Added: 'task.added',
-    //Reserved: 'task.reserved',
+    Reserved: 'task.reserved',
     //Executing: 'task.executing',
     Success: 'task.success',
     Failure: 'task.failure',
@@ -73,6 +73,7 @@ type WorkhorseEvent = NotificationEvents | ActionEvents | SubscriptionEvents;
 interface WorkhorseEventMap {
   // Task notifications
   'task.added': { taskId: string };
+  'task.reserved': { taskId: string };
   'task.success': { taskId: string };
   'task.failure': { taskId: string };
 

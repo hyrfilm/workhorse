@@ -66,12 +66,9 @@
     "vitest": "^3.1.1"
   },
   "dependencies": {
-    "eventemitter3": "^5.0.1",
+    "eventemitter3": "^5.0.4",
     "loglevel": "^1.9.2",
-    "sqlocal": "^0.13.0",
+    "sqlocal": "^0.18.0",
     "xstate": "^5.19.0"
-  },
-  "optionalDependencies": {
-    "uuid": "^11.1.0"
   }
 }

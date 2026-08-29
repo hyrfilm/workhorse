@@ -1,16 +1,17 @@
 import log from "loglevel"
 import {appendHTMLTask} from "./tasks";
 import {seconds} from '@/util/time.ts';
-import {TaskExecutorStrategy} from '@types';
+import {TaskExecutorStrategy, WorkhorseConfig} from '@types';
 
 import { createWorkhorse } from 'src';
+import { QueueVisualizer } from '@/plugins';
 
 export async function run(): Promise<void> {
     log.setDefaultLevel(log.levels.DEBUG);
 
     const numTasks = 1000;
 
-    const options = { taskExecution: TaskExecutorStrategy.SERIAL, concurrency: 1 };
+    const options: Partial<WorkhorseConfig> = { logLevel: 'debug', taskExecution: TaskExecutorStrategy.SERIAL, concurrency: 1, plugins: [new QueueVisualizer()] };
     const workhorse = await createWorkhorse(appendHTMLTask, options);
     log.info("Adding tasks...");
 

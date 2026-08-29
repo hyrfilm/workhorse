@@ -64,7 +64,9 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
 
       const dbRow = updatedRows[0];
       assertTaskRow(dbRow);
-      return toTaskRow(dbRow);
+      const taskRow = toTaskRow(dbRow);
+      Emitter.emit(Notifications.Task.Reserved, { taskId: taskRow.taskId });
+      return taskRow;
     },
     taskSuccessful: async (taskRow: TaskRow) => {
       const query = taskSuccessQuery(taskRow.id);

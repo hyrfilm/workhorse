@@ -2,7 +2,6 @@ import { createWorkhorse } from "../src/workhorse.ts";
 import * as tasks from "./tasks.ts";
 import { millisec, seconds, sleep } from "../src/util/time.ts";
 import { log, setLogLevel } from "../src/util/logging.ts";
-import { v4 as uuidv4 } from 'uuid';
 import { TaskExecutorStrategy } from "../src/types.ts";
 
 export async function run(): Promise<void> {
@@ -23,7 +22,7 @@ export async function run(): Promise<void> {
 
     for (let i = 0; i < numTasks; i++) {
       const newTask = document.createElement('div');
-      const taskId = uuidv4();
+      const taskId = crypto.randomUUID();
       taskIds[taskId] = taskId;
       newTask.id = taskId;
       newTask.textContent = `Task ${i+1}`;
