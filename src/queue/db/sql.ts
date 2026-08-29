@@ -77,23 +77,6 @@ function reserveTaskAtomic(): string {
     `;
 }
 
-function reserveTaskQuery(): string {
-  return `
-        SELECT * FROM task_queue
-        WHERE status_id = ${TaskState.queued} -- 'queued'
-        ORDER BY id ASC
-        LIMIT 1;
-    `;
-}
-
-function updateTaskStatusQuery(rowId: number, status: number): string {
-  return `
-        UPDATE task_queue
-        SET status_id = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?;
-    `;
-}
-
 function taskSuccessQuery(rowId: number): string {
   return `
         UPDATE task_queue
@@ -145,9 +128,7 @@ export {
   schema,
   addTaskQuery,
   addTaskIfNotExistsQuery,
-  reserveTaskQuery,
   reserveTaskAtomic,
-  updateTaskStatusQuery,
   taskSuccessQuery,
   taskFailureQuery,
   requeueFailuresQuery,
