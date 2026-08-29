@@ -39,7 +39,7 @@ const createPeriodicJob = (func: () => Promise<void>, interval: number): Periodi
 
 const machine = setup({
   types: {
-    context: {} as object,
+    context: {},
     events: {} as typeof startEvent | typeof stopEvent | typeof pauseEvent | typeof resumeEvent,
   },
   actors: {

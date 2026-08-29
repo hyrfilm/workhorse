@@ -43,7 +43,7 @@ function toTaskRow(dbRow: unknown): TaskRow {
     id: dbRow.id,
     taskId: dbRow.task_id,
     payload: JSON.parse(dbRow.task_payload) as Payload,
-  } as TaskRow;
+  };
 }
 
 function addTaskQuery(): string {

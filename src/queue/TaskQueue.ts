@@ -39,7 +39,7 @@ function createTaskQueue(config: WorkhorseConfig, sql: RunQuery): TaskQueue {
           query = addTaskIfNotExistsQuery();
           break;
         default:
-          query = 'This should not be possible' as never;
+          query = 'This should not be possible';
       }
       try {
         await sql(query, taskId, JSON.stringify(payload));
