@@ -1,2 +1,2 @@
 ignore:
-  [examples/**/* rollup.*]
+  [examples/**/* rollup.* src/plugins/visualization/*]
