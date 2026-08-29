@@ -4,7 +4,6 @@
     "useDefineForClassFields": true,
     "module": "esnext",
     "lib": ["esnext", "DOM", "DOM.Iterable"],
-    "skipLibCheck": true, // import of optional dependencies will fail if set to true
 
     /* Bundler mode */
     "moduleResolution": "bundler",

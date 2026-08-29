@@ -45,6 +45,9 @@ export default defineConfig({
     optimizeDeps: {
         exclude: ["sqlocal"],
     },
+    worker: {
+        format: 'es',
+    },
     server: {
         hmr: {
             host: 'localhost',
