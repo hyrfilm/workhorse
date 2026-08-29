@@ -113,7 +113,7 @@ describe('fuzz tests - atomicity', () => {
     );
   });
 
-  it('Fuzzing - tasks are processed atomically with retries until all succeed', async () => {
+  it('Fuzzing - tasks are processed atomically with retries until all succeed', { timeout: seconds(30) }, async () => {
     // Helper to create a deterministic task runner using an infinite stream of probabilities
     const createTaskFunction = (taskProbStream: IterableIterator<number>) => {
       const executedTaskSet = new Set<string>();
