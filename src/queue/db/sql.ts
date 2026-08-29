@@ -89,8 +89,8 @@ function reserveTaskQuery(): string {
 function updateTaskStatusQuery(rowId: number, status: number): string {
   return `
         UPDATE task_queue
-        SET status_id = ${status}, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${rowId};
+        SET status_id = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?;
     `;
 }
 
