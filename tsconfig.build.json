@@ -8,7 +8,8 @@
     "outDir": "./types",
     "moduleResolution": "node",
     "isolatedModules": false,
-    "module": "es2022"
+    "module": "es2022",
+    "skipLibCheck": true
   },
   "include": [
     "./src/index.ts"
