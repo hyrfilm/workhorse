@@ -6,20 +6,24 @@ interface QueueVisualizerHandle {
 }
 
 export function initQueueVisualizer(options?: { parent?: HTMLElement }): QueueVisualizerHandle {
+  const urlParams = new URLSearchParams(window.location.search);
   const parent = options?.parent ?? document.body;
   // Root container
   const container = document.createElement('div');
   container.style.position = 'relative';
   container.style.width = '100vw';
-  container.style.height = '100vh';
+  container.style.height = '50vh';
   container.style.background = '#000';
-  parent.appendChild(container);
+  if (!urlParams.get('viz')) {
+    container.style.display = 'none';
+  }
+  parent.prepend(container);
 
   // Canvas
   const canvas = document.createElement('canvas');
   canvas.style.display = 'block';
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.height = window.innerHeight / 2;
   container.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
@@ -169,13 +173,13 @@ export function initQueueVisualizer(options?: { parent?: HTMLElement }): QueueVi
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'right';
     ctx.fillStyle = '#00d4ff';
-    ctx.fillText(`Added: ${tasks.length}`, canvas.width - 20, 30);
+    ctx.fillText(`Added: ${tasks.length}`, canvas.width - 20, canvas.height - 90);
     ctx.fillStyle = '#ffaa00';
-    ctx.fillText(`Executing: ${stats.executing}`, canvas.width - 20, 50);
+    ctx.fillText(`Executing: ${stats.executing}`, canvas.width - 20, canvas.height - 70);
     ctx.fillStyle = '#00ff88';
-    ctx.fillText(`Completed: ${stats.successful}`, canvas.width - 20, 70);
+    ctx.fillText(`Completed: ${stats.successful}`, canvas.width - 20, canvas.height - 50);
     ctx.fillStyle = '#ff3366';
-    ctx.fillText(`Failed: ${stats.failed}`, canvas.width - 20, 90);
+    ctx.fillText(`Failed: ${stats.failed}`, canvas.width - 20, canvas.height - 30);
 
     // Row/Col indicators
     ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';

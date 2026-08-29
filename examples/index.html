@@ -21,7 +21,7 @@
 <body>
 <div id="app">
     <div id="example-selector" style="font-family: 'Courier New', monospace; margin-bottom: 1rem;">
-        <span data-example="0" style="cursor:pointer;text-decoration:underline;">[marquee]</span>
+        <span data-example="0" style="cursor:pointer;text-decoration:underline;">[marquee + viz plugin]</span>
         <span data-example="1" style="cursor:pointer;text-decoration:underline;">[sequential tasks]</span>
         <span data-example="2" style="cursor:pointer;text-decoration:underline;">[parallel tasks]</span>
         <span data-example="3" style="cursor:pointer;text-decoration:underline;">[high concurrency]</span>
@@ -33,16 +33,16 @@
     <h2>
         <pre>workhorse</pre>
     </h2>
-    <h3>
+    <h4>
         <pre>browser-based task queue</pre>
-    </h3>
-    <h3>
+    </h4>
+    <h4>
         <pre>persistent + transactional</pre>
-    </h3>
-    <h3>
+    </h4>
+    <h4>
         <pre id="status"></pre>
-    </h3>
-    <div style="display:flex; gap: 2rem; align-items:flex-start;">
+    </h4>
+    <div id="queues" style="display: flex; gap: 2rem; align-items:flex-start;">
         <div>
             <h4>Slow queue</h4>
             <pre id="status-slow"></pre>
@@ -59,12 +59,5 @@
     <h3 id="tasks-lg"></h3>
 </div>
 <script type="module" src="./main.ts"></script>
-<script type="module">
-    // Opt in with ?viz - the visualizer covers the whole page
-    if (new URLSearchParams(window.location.search).has('viz')) {
-        const { initQueueVisualizer } = await import("../src/plugins/visualization/MatrixViz.ts");
-        initQueueVisualizer();
-    }
-</script>
 </body>
 </html>

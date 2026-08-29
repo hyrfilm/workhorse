@@ -23,6 +23,7 @@ export async function run(): Promise<void> {
     );
 
     const container = document.getElementById('tasks');
+    container!.style = 'block';
     const description = document.createElement('h4');
     description.textContent = `Queues ${numTasks} requests and processes them in parallel using ${concurrency} workers.<br>`;
     description.textContent = `This instance is configured to stop polling when it detect being offline, you can see that in the console.`;
